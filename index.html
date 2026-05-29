@@ -40,11 +40,12 @@ body {
   justify-content: center;
   padding: 40px 32px;
   gap: 0;
+  overflow-y: auto;
 }
 
 .start-battery {
-  font-size: 72px;
-  margin-bottom: 20px;
+  font-size: 64px;
+  margin-bottom: 12px;
   animation: batteryPulse 1.2s infinite;
 }
 
@@ -58,7 +59,7 @@ body {
   font-weight: 700;
   color: #000;
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   letter-spacing: -0.3px;
 }
 
@@ -66,8 +67,8 @@ body {
   font-size: 15px;
   color: #8E8E93;
   text-align: center;
-  line-height: 1.7;
-  margin-bottom: 36px;
+  line-height: 1.9;
+  margin-bottom: 24px;
 }
 
 .start-sub em {
@@ -76,10 +77,15 @@ body {
   font-weight: 600;
 }
 
+.start-sub-note {
+  color: #AEAEB2;
+  font-size: 13px;
+}
+
 .start-hint {
   display: flex;
   gap: 8px;
-  margin-bottom: 36px;
+  margin-bottom: 28px;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -463,8 +469,14 @@ body {
     <div class="start-battery">🪫</div>
     <div class="start-title">今天不想回消息</div>
     <div class="start-sub">
-      手机 <em>1%</em> 电，<em>99+</em> 消息<br>
-      四个字，救不了所有人
+      昨晚有停电通知。你没看到。<br><br>
+      醒来已经晚了，手机剩 <em>1%</em> 电。<br>
+      老板在催，同事在问，快递等你开门禁，<br>
+      你用 claw 自动订的早饭和咖啡刚到楼下，<br>
+      还有几个你叫不出名字但号码眼熟的来电。<br><br>
+      预存了四条回复。<br>
+      在找到充电器之前，先用它们把消息处理完。<br><br>
+      <span class="start-sub-note">（应该够用的。）</span>
     </div>
     <div class="start-hint">
       <span class="hint-chip">等等 — 开门/取件</span>
