@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "command": "node --check \"D:\\Bob\\Yostar\\AIGC\\claudecode workspace\\1min-game\\index.html\" 2>&1 || true",
+        "description": "修改 index.html 后检查 JS 语法"
+      }
+    ],
+    "Stop": [
+      {
+        "command": "cd \"D:\\Bob\\Yostar\\AIGC\\claudecode workspace\\1min-game\" && git diff --stat HEAD 2>/dev/null || echo '(no git changes)'",
+        "description": "会话结束时显示本次改动汇总"
+      }
+    ]
+  }
+}

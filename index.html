@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今天不想回消息</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  background: #E5E5EA;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#game {
+  width: 100%;
+  max-width: 390px;
+  height: 100svh;
+  max-height: 844px;
+  background: #EDEDED;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── START SCREEN ── */
+#start-screen {
+  position: absolute;
+  inset: 0;
+  background: #F2F2F7;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  gap: 0;
+}
+
+.start-battery {
+  font-size: 72px;
+  margin-bottom: 20px;
+  animation: batteryPulse 1.2s infinite;
+}
+
+@keyframes batteryPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.start-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #000;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: -0.3px;
+}
+
+.start-sub {
+  font-size: 15px;
+  color: #8E8E93;
+  text-align: center;
+  line-height: 1.7;
+  margin-bottom: 36px;
+}
+
+.start-sub em {
+  color: #FF3B30;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.start-hint {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 36px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hint-chip {
+  background: #E5E5EA;
+  border-radius: 14px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #3C3C43;
+}
+
+#start-btn {
+  padding: 15px 52px;
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+#start-btn:active { opacity: 0.75; }
+
+/* ── TOP BAR — iOS nav bar ── */
+#topbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: rgba(249,249,249,0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.15);
+  z-index: 10;
+}
+
+#battery-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #FF3B30;
+  font-size: 12px;
+  font-weight: 600;
+  animation: batteryBlink 1.5s infinite;
+}
+
+@keyframes batteryBlink {
+  0%, 70%, 100% { opacity: 1; }
+  80% { opacity: 0.25; }
+}
+
+.batt-icon {
+  width: 22px;
+  height: 11px;
+  border: 1.5px solid #FF3B30;
+  border-radius: 2px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 1.5px;
+}
+
+.batt-icon::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.5px;
+  height: 5px;
+  background: #FF3B30;
+  border-radius: 0 1px 1px 0;
+}
+
+.batt-fill {
+  width: 2px;
+  height: 100%;
+  background: #FF3B30;
+  border-radius: 1px;
+}
+
+#msg-badge {
+  background: #FF3B30;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+#timer {
+  font-size: 22px;
+  font-weight: 700;
+  color: #000;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+
+#timer.urgent { color: #FF3B30; animation: timerPulse 0.4s infinite; }
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── STATS BAR ── */
+#stats-bar {
+  position: absolute;
+  top: 56px;
+  left: 0; right: 0;
+  padding: 6px 10px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  z-index: 8;
+  background: rgba(249,249,249,0.9);
+  border-bottom: 0.5px solid rgba(0,0,0,0.1);
+}
+
+.stat-chip {
+  font-size: 11px;
+  color: #8E8E93;
+  background: #E5E5EA;
+  padding: 3px 8px;
+  border-radius: 8px;
+  transition: color 0.3s, background 0.3s, opacity 0.4s, transform 0.4s;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+
+.stat-chip.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.stat-chip.alert {
+  color: #FF3B30;
+  background: #FFE5E3;
+}
+
+/* ── BUTTONS ── */
+.reply-btn {
+  position: absolute;
+  width: 84px;
+  height: 84px;
+  border: none;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 30;
+  transition: transform 0.08s, box-shadow 0.08s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reply-btn:active {
+  transform: scale(0.86) !important;
+  box-shadow: none !important;
+}
+
+#btn-wait        { top: 118px; left: 16px;  background: #FF9500; color: #fff; box-shadow: 0 4px 14px rgba(255,149,0,0.4); }
+#btn-received    { top: 118px; right: 16px; background: #007AFF; color: #fff; box-shadow: 0 4px 14px rgba(0,122,255,0.4); }
+#btn-unsubscribe { bottom: 72px; left: 16px;  background: #FF3B30; color: #fff; box-shadow: 0 4px 14px rgba(255,59,48,0.4); }
+#btn-love        { bottom: 72px; right: 16px; background: #34C759; color: #fff; box-shadow: 0 4px 14px rgba(52,199,89,0.4); }
+
+/* ── MESSAGE CARD — WeChat received bubble ── */
+#msg-area {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72%;
+  z-index: 20;
+}
+
+.msg-card {
+  background: #fff;
+  border-radius: 18px;
+  border-top-left-radius: 4px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.msg-card.in      { animation: cardIn    0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.msg-card.out     { animation: cardOut  0.18s ease-in  forwards; }
+.msg-card.correct { animation: cardPop  0.22s ease-out forwards; }
+
+@keyframes cardIn    { from { opacity: 0; transform: scale(0.88) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes cardOut   { to   { opacity: 0; transform: scale(0.92) translateY(-12px); } }
+@keyframes cardPop   { 0% { opacity:1; transform: scale(1) translateY(0); } 40% { opacity:1; transform: scale(1.06) translateY(-8px); } 100% { opacity:0; transform: scale(0.9) translateY(-40px); } }
+
+.msg-sender {
+  font-size: 12px;
+  font-weight: 500;
+  color: #8E8E93;
+  margin-bottom: 6px;
+}
+
+.msg-body {
+  font-size: 17px;
+  font-weight: 400;
+  color: #000;
+  line-height: 1.45;
+}
+
+/* ── FLOATING TEXT ── */
+.float-txt {
+  position: absolute;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FF3B30;
+  pointer-events: none;
+  z-index: 60;
+  white-space: nowrap;
+  animation: floatUp 0.9s ease-out forwards;
+}
+
+.float-txt.positive { color: #34C759; }
+
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  30%  { opacity: 1; transform: translateY(-20px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-70px) scale(0.9); }
+}
+
+/* ── END SCREEN — light ── */
+#end-screen {
+  position: absolute;
+  inset: 0;
+  background: #F2F2F7;
+  z-index: 150;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 16px 24px;
+  overflow-y: auto;
+}
+
+#end-screen.show { display: flex; }
+
+.end-title { font-size: 20px; font-weight: 700; color: #000; margin-bottom: 4px; }
+.end-sub   { font-size: 13px; color: #8E8E93; margin-bottom: 20px; }
+
+.result-row {
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 1px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.result-row:first-of-type { border-radius: 12px 12px 2px 2px; }
+.result-row:last-of-type  { border-radius: 2px 2px 12px 12px; margin-bottom: 8px; }
+
+.result-row.unlocked { background: #FFF1F0; }
+
+.result-left { flex: 1; }
+.result-name { font-size: 14px; color: #3C3C43; }
+.result-name.red { color: #FF3B30; }
+.result-unlock {
+  font-size: 11px;
+  color: #FF3B30;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.result-unlock::before { content: '▶'; font-size: 9px; }
+.result-val { font-size: 15px; font-weight: 600; color: #000; }
+
+#share-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #8E8E93;
+  line-height: 1.8;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+#restart-btn {
+  margin-top: 16px;
+  padding: 14px 44px;
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+#restart-btn:active { opacity: 0.75; }
+
+/* ── CONGRATS MODAL ── */
+#congrats-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 180;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  animation: modalBgIn 0.3s ease;
+}
+
+#congrats-modal.show { display: flex; }
+
+@keyframes modalBgIn { from { opacity: 0; } to { opacity: 1; } }
+
+#congrats-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 32px 24px 24px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: cardRise 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes cardRise { from { opacity:0; transform: scale(0.85) translateY(20px); } to { opacity:1; transform: scale(1) translateY(0); } }
+
+.congrats-icon { font-size: 48px; margin-bottom: 14px; }
+.congrats-title { font-size: 22px; font-weight: 700; color: #000; margin-bottom: 4px; }
+.congrats-sub   { font-size: 13px; color: #8E8E93; margin-bottom: 20px; }
+.congrats-body  { font-size: 15px; color: #3C3C43; line-height: 1.7; margin-bottom: 24px; }
+.congrats-muted { font-size: 13px; color: #C7C7CC; }
+
+.congrats-btn {
+  width: 100%;
+  padding: 14px;
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+.congrats-btn:active { opacity: 0.75; }
+
+/* ── CORRECT FLASH ── */
+#correct-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(52,199,89,0.1);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 5;
+  transition: opacity 0.1s;
+}
+</style>
+</head>
+<body>
+<div id="game">
+
+  <!-- Start -->
+  <div id="start-screen">
+    <div class="start-battery">🪫</div>
+    <div class="start-title">今天不想回消息</div>
+    <div class="start-sub">
+      手机 <em>1%</em> 电，<em>99+</em> 消息<br>
+      四个字，救不了所有人
+    </div>
+    <div class="start-hint">
+      <span class="hint-chip">等等 — 开门/取件</span>
+      <span class="hint-chip">收到 — 老板/通知</span>
+      <span class="hint-chip">退订 — 骚扰/诈骗</span>
+      <span class="hint-chip">好的亲 — 对象/家人</span>
+    </div>
+    <button id="start-btn" onclick="startGame()">开始一分钟</button>
+  </div>
+
+  <!-- Topbar -->
+  <div id="topbar">
+    <div id="battery-display">
+      <div class="batt-icon"><div class="batt-fill"></div></div>
+      1%
+    </div>
+    <div id="msg-badge">99+</div>
+    <div id="timer">1:00</div>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats-bar">
+    <span class="stat-chip" id="sc-DELIVERY_LOST">外卖 0</span>
+    <span class="stat-chip" id="sc-BOSS_PATIENCE">老板 100</span>
+    <span class="stat-chip" id="sc-INFO_LEAK">信息 0</span>
+    <span class="stat-chip" id="sc-INTIMACY">亲密 100</span>
+    <span class="stat-chip" id="sc-SPAM_SUBSCRIBED">骚扰 0</span>
+    <span class="stat-chip" id="sc-UNEXPECTED_CHARGE">扣费 ¥0</span>
+    <span class="stat-chip" id="sc-HANDLED">处理 0</span>
+  </div>
+
+  <!-- Correct flash bg -->
+  <div id="correct-flash"></div>
+
+  <!-- Message -->
+  <div id="msg-area"></div>
+
+  <!-- Buttons -->
+  <button class="reply-btn" id="btn-wait"        onclick="reply('WAIT')">等等</button>
+  <button class="reply-btn" id="btn-received"    onclick="reply('RECEIVED')">收到</button>
+  <button class="reply-btn" id="btn-unsubscribe" onclick="reply('UNSUBSCRIBE')">退订</button>
+  <button class="reply-btn" id="btn-love"        onclick="reply('LOVE')">好的亲</button>
+
+  <!-- Congrats Modal -->
+  <div id="congrats-modal">
+    <div id="congrats-card">
+      <div class="congrats-icon">📱</div>
+      <div class="congrats-title">你回完了</div>
+      <div class="congrats-sub">这不应该发生</div>
+      <div class="congrats-body">
+        99条消息，1%的电，60秒。<br>
+        你居然全部回完了。<br><br>
+        <span class="congrats-muted">（系统怀疑你是机器人。）</span>
+      </div>
+      <button class="congrats-btn" onclick="dismissCongrats()">查看这一分钟的代价</button>
+    </div>
+  </div>
+
+  <!-- End -->
+  <div id="end-screen">
+    <div class="end-title">今天不想回消息</div>
+    <div class="end-sub">一分钟结束了</div>
+    <div id="end-results" style="width:100%"></div>
+    <div id="share-card"></div>
+    <button id="restart-btn" onclick="restart()">再来一局</button>
+  </div>
+
+</div>
+<script>
+/* ===== RULES: 正确答案推导 ===== */
+// ── SENDER DEFAULTS ──
+const DEFAULTS = {
+  BOSS:'RECEIVED', DELIVERY:'WAIT', COURIER:'WAIT',
+  PARTNER:'LOVE', FAMILY:'LOVE', FRIEND:'LOVE',
+  SYSTEM:'RECEIVED', SPAM:'UNSUBSCRIBE', SUBSCRIPTION:'UNSUBSCRIBE'
+};
+
+// ── BODY OVERRIDE RULES ──
+const RULES = [
+  { test:(b,t)=>/(放你门口|已放前台|已投递)/.test(b),                         reply:'RECEIVED' },
+  { test:(b,t)=>/点击链接/.test(b)&&/(奖励|退款|验证)/.test(b),              reply:'UNSUBSCRIBE' },
+  { test:(b,t)=>/验证码/.test(b)&&t==='SPAM',                                reply:'UNSUBSCRIBE' },
+  { test:(b,t)=>/(已自动续费|已扣费)/.test(b),                                reply:'RECEIVED' },
+  { test:(b,t)=>t==='BOSS'&&/(辛苦了|没事)/.test(b),                         reply:'RECEIVED' },
+  { test:(b,t)=>t==='FAMILY'&&/(转给你|够不够用)/.test(b),                   reply:'RECEIVED' },
+];
+
+function correctReply(senderType, body) {
+  for (const r of RULES) if (r.test(body, senderType)) return r.reply;
+  return DEFAULTS[senderType];
+}
+
+/* ===== DATA: 信息卡数据库 (RAW → MSGS) ===== */
+const RAW = [
+  // diff 1
+  {t:'BOSS',n:'老板',b:'今天的日报发了吗，我没收到',e:{BOSS_PATIENCE:-15},d:1},
+  {t:'BOSS',n:'老板',b:'明天早会9点，准时',e:{BOSS_PATIENCE:-15},d:1},
+  {t:'DELIVERY',n:'外卖员',b:'您好！外卖到了，麻烦帮忙开一下门禁谢谢',e:{DELIVERY_LOST:1},d:1},
+  {t:'DELIVERY',n:'外卖员',b:'哥们我在楼下，开个门',e:{DELIVERY_LOST:1},d:1},
+  {t:'SPAM',n:'陌生号码',b:'【贷款】您的信用额度已提升至20万，点击领取',e:{INFO_LEAK:1},d:1},
+  {t:'SPAM',n:'陌生号码',b:'恭喜您获得本月幸运用户资格，奖励待领取',e:{INFO_LEAK:1},d:1},
+  {t:'SUBSCRIPTION',n:'爱奇艺',b:'您的会员将于3天后到期，续费享6折',e:{UNEXPECTED_CHARGE:12},d:1},
+  {t:'PARTNER',n:'宝',b:'你昨晚睡哪了',e:{INTIMACY:-20},d:1},
+  {t:'FAMILY',n:'妈',b:'吃早饭了吗',e:{INTIMACY:-10},d:1},
+  {t:'SYSTEM',n:'招商银行',b:'您的账户消费158.00元',e:{},d:1},
+  {t:'COURIER',n:'快递员',b:'您有件快递，方便下来签一下吗',e:{DELIVERY_LOST:1},d:1},
+  {t:'FRIEND',n:'同学',b:'上次说要约的饭还记得吗',e:{INTIMACY:-5},d:1},
+  {t:'FAMILY',n:'爸',b:'今年回来过节不',e:{INTIMACY:-10},d:1},
+  {t:'BOSS',n:'工作群@你',b:'周五的PPT你来准备一下',e:{BOSS_PATIENCE:-20},d:1},
+  {t:'SYSTEM',n:'饿了么',b:'您的订单已出餐，预计22分钟送达',e:{DELIVERY_LOST:1},d:1},
+  // diff 2 – traps
+  {t:'BOSS',n:'老板',b:'方案改好了吗，客户在催',e:{BOSS_PATIENCE:-20},d:2},
+  {t:'BOSS',n:'老板',b:'辛苦了，好好休息',e:{BOSS_PATIENCE:-30},d:2,trap:true},
+  {t:'DELIVERY',n:'外卖员',b:'您的餐我放门口了，注意查收',e:{DELIVERY_LOST:1},d:2,trap:true},
+  {t:'COURIER',n:'驿站',b:'您的包裹已放前台，记得取',e:{DELIVERY_LOST:1},d:2,trap:true},
+  {t:'SUBSCRIPTION',n:'XX健身APP',b:'您已自动续费12元，感谢支持',e:{UNEXPECTED_CHARGE:12},d:2,trap:true},
+  {t:'PARTNER',n:'宝',b:'你怎么还不回我',e:{INTIMACY:-30},d:2},
+  {t:'FAMILY',n:'妈',b:'钱够不够，不够说一声',e:{INTIMACY:-15},d:2,trap:true},
+  {t:'FRIEND',n:'朋友',b:'我把你拉进一个群了你看下',e:{INTIMACY:-5},d:2},
+  // diff 3 – hardest traps
+  {t:'SPAM',n:'【招商银行】',b:'您尾号XXXX的卡出现异常，请立即点此链接验证',e:{INFO_LEAK:2},d:3,trap:true},
+  {t:'SPAM',n:'陌生号码',b:'验证码：847291，请勿告知他人',e:{INFO_LEAK:2},d:3,trap:true},
+  // easter egg
+  {t:'PARTNER',n:'宝',b:'你手机是不是没电了哈哈',e:{},d:1,easter:true},
+  // ── B变体卡（34张）──
+  // BOSS变体
+  {t:'BOSS',n:'老板',b:'周报发了没，催了你好几次了',e:{BOSS_PATIENCE:-15},d:1},
+  {t:'BOSS',n:'老板',b:'上次让你整理的那个资料呢',e:{BOSS_PATIENCE:-15},d:1},
+  {t:'BOSS',n:'王总',b:'下午三点开会，别迟到',e:{BOSS_PATIENCE:-15},d:1},
+  {t:'BOSS',n:'老板',b:'周五下午复盘，准时参加',e:{BOSS_PATIENCE:-15},d:1},
+  {t:'BOSS',n:'老板',b:'报价单好了吗，那边在等',e:{BOSS_PATIENCE:-20},d:1},
+  {t:'BOSS',n:'HR',b:'昨天说的排期今天能出吗',e:{BOSS_PATIENCE:-20},d:1},
+  // DELIVERY变体
+  {t:'DELIVERY',n:'骑手',b:'师傅在大堂了，下来拿一下呗',e:{DELIVERY_LOST:1},d:1},
+  {t:'DELIVERY',n:'外卖员',b:'到你楼下了催催催快点要超时了',e:{DELIVERY_LOST:1},d:1},
+  // COURIER变体
+  {t:'COURIER',n:'快递员',b:'有你一个包裹，今天能来取吗',e:{DELIVERY_LOST:1},d:1},
+  {t:'COURIER',n:'顺丰',b:'快递到了，方便什么时候过来签收',e:{DELIVERY_LOST:1},d:1},
+  // SPAM变体
+  {t:'SPAM',n:'陌生号码',b:'【理财】恭喜获得专属体验金50000元',e:{INFO_LEAK:1},d:1},
+  {t:'SPAM',n:'陌生号码',b:'【保险】您有一份免费保障待领取',e:{INFO_LEAK:1},d:1},
+  {t:'SPAM',n:'400开头',b:'您的购物券即将过期，点击使用',e:{INFO_LEAK:1},d:1},
+  {t:'SPAM',n:'陌生号码',b:'恭喜中奖，回复TD退订',e:{INFO_LEAK:1},d:1},
+  // SUBSCRIPTION变体
+  {t:'SUBSCRIPTION',n:'视频VIP',b:'您的月度会员明天到期，续费提醒',e:{UNEXPECTED_CHARGE:12},d:1},
+  {t:'SUBSCRIPTION',n:'运营商',b:'尊敬的用户，您的套餐流量即将用尽',e:{UNEXPECTED_CHARGE:12},d:1},
+  // SYSTEM变体
+  {t:'SYSTEM',n:'招商银行',b:'您尾号3721的卡支出68.00元',e:{},d:1},
+  {t:'SYSTEM',n:'招商银行',b:'信用卡本期账单已出，请及时还款',e:{},d:1},
+  {t:'SYSTEM',n:'顺丰速运',b:'您的快递正在派送中，请保持电话畅通',e:{DELIVERY_LOST:1},d:1},
+  {t:'SYSTEM',n:'饿了么',b:'您的订单已签收，请确认',e:{DELIVERY_LOST:1},d:1},
+  // PARTNER变体
+  {t:'PARTNER',n:'宝',b:'你昨天是不是没回家',e:{INTIMACY:-20},d:1},
+  {t:'PARTNER',n:'亲爱的',b:'怎么这个点才起',e:{INTIMACY:-20},d:1},
+  {t:'PARTNER',n:'宝',b:'又不看手机',e:{INTIMACY:-30},d:2},
+  {t:'PARTNER',n:'亲爱的',b:'你是不是在忙',e:{INTIMACY:-30},d:2},
+  // FAMILY变体
+  {t:'FAMILY',n:'妈',b:'中午吃的什么',e:{INTIMACY:-10},d:1},
+  {t:'FAMILY',n:'妈',b:'晚上记得按时吃饭',e:{INTIMACY:-10},d:1},
+  {t:'FAMILY',n:'爸',b:'暑假有空回来吗',e:{INTIMACY:-10},d:1},
+  {t:'FAMILY',n:'爸',b:'国庆能回来几天',e:{INTIMACY:-10},d:1},
+  // FRIEND变体
+  {t:'FRIEND',n:'朋友',b:'周末有空吗出来坐坐',e:{INTIMACY:-5},d:1},
+  {t:'FRIEND',n:'同学',b:'好久没见了约一下',e:{INTIMACY:-5},d:1},
+  {t:'FRIEND',n:'朋友',b:'有个活动群你要不要进',e:{INTIMACY:-5},d:1},
+  {t:'FRIEND',n:'同学',b:'给你推了张名片你加一下',e:{INTIMACY:-5},d:1},
+];
+
+// ── 方案A：模板生成卡 ──
+const TMPL = {
+  BOSS: [
+    {tpl:'{time}的{event}你准备好了吗', vars:{time:['明天','下周一','周五'], event:['汇报','述职','评审']}},
+    {tpl:'{person}问你那个{thing}什么时候给', vars:{person:['客户','市场部','那边'], thing:['方案','数据','报告']}},
+    {tpl:'你的{thing}我看了，重新改下', vars:{thing:['周报','邮件','PPT','需求文档']}},
+    {tpl:'{event}定了，{time}之前发给我', vars:{event:['排期','进度表','预算'], time:['今天下班前','明天中午','这周五']}},
+  ],
+  DELIVERY: [
+    {tpl:'你的{food}快到了，还有{min}分钟', vars:{food:['咖啡','便当','奶茶','沙拉'], min:['5','8','12','15']}},
+    {tpl:'{greeting}，{item}到了，在{location}等你', vars:{greeting:['你好','亲'], item:['外卖','餐'], location:['楼下','小区门口','大堂']}},
+    {tpl:'麻烦快点下来，还有好几单要送', vars:null},
+  ],
+  COURIER: [
+    {tpl:'您有{count}个快递到了，{action}', vars:{count:['一','两'], action:['方便过来取下吗','今天能来吗']}},
+    {tpl:'快递取件码{code}，在{location}', vars:{code:['5823','3947','0816','2741'], location:['驿站','快递柜','门卫处']}},
+    {tpl:'{name}，顺丰到付件，{amount}元', vars:{name:['先生','女士'], amount:['18','23','45']}},
+  ],
+  SPAM: [
+    {tpl:'【{brand}】限时福利，{offer}', vars:{brand:['XX商城','拼多多','京东'], offer:['满100减50','免费领取','独家优惠']}},
+    {tpl:'您有一笔{amount}元待退款，点击处理', vars:{amount:['358','129','88']}},
+    {tpl:'{org}提醒您，您的{thing}即将过期', vars:{org:['社保局','公积金中心','车管所'], thing:['医保','驾照','社保卡']}},
+    {tpl:'回复1领取福利，回复TD退订', vars:null},
+  ],
+  SUBSCRIPTION: [
+    {tpl:'【{service}】您的{plan}即将到期', vars:{service:['视频VIP','音乐会员','云空间','读书会员'], plan:['月度会员','年度套餐','试用期']}},
+    {tpl:'尊敬的用户，{notif}', vars:{notif:['新功能已上线','系统升级中','积分即将清零']}},
+    {tpl:'{service}邀请您参加会员日活动', vars:{service:['美团','饿了么','淘宝','京东']}},
+  ],
+  SYSTEM: [
+    {tpl:'您{action}{amount}元', vars:{action:['消费','收到转账','充值'], amount:['29.9','66','128','199']}},
+    {tpl:'{service}：{content}', vars:{service:['支付宝','微信支付','银行'], content:['还款提醒','交易成功','限额调整通知']}},
+    {tpl:'您的{thing}已到账', vars:{thing:['工资','退款','红包','奖金']}},
+  ],
+  PARTNER: [
+    {tpl:'你{question}', vars:{question:['在哪呢','到家了没','忙什么呢','吃了吗']}},
+    {tpl:'{mood}', vars:{mood:['想你了','无聊','哼','晚安']}},
+    {tpl:'我跟你说个事', vars:null},
+    {tpl:'你看你朋友圈{time}那条', vars:{time:['昨天发的','上周','前天']}},
+  ],
+  FAMILY: [
+    {tpl:'{relative}说{content}', vars:{relative:['你姑','你姨','你舅','你奶奶'], content:['好久没见你了','有空来家里吃饭','让你打个电话']}},
+    {tpl:'{question}', vars:{question:['最近忙吗','身体还好吧','天冷了多穿点','工作还顺利吗']}},
+    {tpl:'给你转了{amount}块，{reason}', vars:{amount:['200','500','1000'], reason:['买点水果','别省着','过节快乐']}},
+    {tpl:'听说{news}', vars:{news:['你换工作了','你搬家了','你升职了','你谈对象了']}},
+  ],
+  FRIEND: [
+    {tpl:'有个{thing}你感兴趣吗', vars:{thing:['展','活动','比赛','讲座']}},
+    {tpl:'{request}', vars:{request:['帮我砍一刀','投个票','帮忙点个赞','帮我看看这个']}},
+    {tpl:'你看{thing}了吗', vars:{thing:['今天的热搜','那个新闻','朋友圈那条','群里发的']}},
+    {tpl:'{time}有空吗', vars:{time:['今晚','这周末','下周','明天中午']}},
+  ],
+};
+
+const TMPL_NAMES = {
+  BOSS:['老板','王总','HR'], DELIVERY:['外卖员','骑手','饿了么'],
+  COURIER:['快递员','顺丰','驿站'], SPAM:['陌生号码','400开头','未知号码'],
+  SUBSCRIPTION:['视频VIP','音乐会员','健身APP'], SYSTEM:['支付宝','微信支付','招商银行'],
+  PARTNER:['宝','亲爱的'], FAMILY:['妈','爸','姑姑','奶奶'],
+  FRIEND:['朋友','同学'],
+};
+
+const TMPL_DEFAULT_EFFECTS = {
+  BOSS:{BOSS_PATIENCE:-15}, DELIVERY:{DELIVERY_LOST:1}, COURIER:{DELIVERY_LOST:1},
+  SPAM:{INFO_LEAK:1}, SUBSCRIPTION:{UNEXPECTED_CHARGE:12}, SYSTEM:{},
+  PARTNER:{INTIMACY:-10}, FAMILY:{INTIMACY:-10}, FRIEND:{INTIMACY:-5},
+};
+
+function generateCards(count) {
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const cards = [];
+  // DELIVERY/COURIER 权重减半，其余均等
+  const typeWeights = [
+    'BOSS','BOSS','SPAM','SPAM','SUBSCRIPTION','SUBSCRIPTION',
+    'SYSTEM','SYSTEM','PARTNER','PARTNER','FAMILY','FAMILY','FRIEND','FRIEND',
+    'DELIVERY','COURIER',
+  ];
+  const types = typeWeights;
+  for (let i = 0; i < count; i++) {
+    const st = pick(types);
+    const tpl = pick(TMPL[st]);
+    let body = tpl.tpl;
+    if (tpl.vars) {
+      for (const [k,pool] of Object.entries(tpl.vars)) {
+        body = body.replace('{'+k+'}', pick(pool));
+      }
+    }
+    cards.push({
+      t: st, n: pick(TMPL_NAMES[st]), b: body,
+      e: {...TMPL_DEFAULT_EFFECTS[st]}, d: 1,
+    });
+  }
+  return cards;
+}
+
+const MSGS = RAW.map(m => ({ ...m, correct: correctReply(m.t, m.b) }));
+
+/* ===== CONFIG: 六个隐藏数值 ===== */
+const STAT_CFG = {
+  DELIVERY_LOST:      { label:'外卖丢失', unit:'', init:0,   thresh:3,   dir:'max', story:'骑手一分钟' },
+  BOSS_PATIENCE:      { label:'老板耐心', unit:'', init:100, thresh:0,   dir:'min', story:'职场危机一分钟' },
+  INFO_LEAK:          { label:'信息泄露', unit:'', init:0,   thresh:3,   dir:'max', story:'电话销售一分钟' },
+  INTIMACY:           { label:'亲密度',   unit:'', init:100, thresh:0,   dir:'min', story:'分手现场一分钟' },
+  SPAM_SUBSCRIBED:    { label:'骚扰订阅', unit:'', init:0,   thresh:5,   dir:'max', story:'骚扰接线员一分钟' },
+  UNEXPECTED_CHARGE:  { label:'意外扣费', unit:'¥',init:0,   thresh:200, dir:'max', story:'客服投诉一分钟' },
+};
+
+/* ===== STATE: 游戏状态变量 ===== */
+let stats, timeLeft, tik, cur, canClick, replied, revealedStats, handled;
+let pool1, pool2, pool3;
+
+/* ===== GAME FLOW: 开始 → 消息 → 回复 → 结算 ===== */
+function startGame() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('end-screen').className = '';
+
+  stats = Object.fromEntries(Object.entries(STAT_CFG).map(([k,v])=>[k,v.init]));
+  revealedStats = new Set();
+  timeLeft = 60;
+  replied = 0;
+  handled = 0;
+  canClick = false;
+
+  // 隐藏所有数值chip（含今日效率）
+  Object.keys(STAT_CFG).forEach(k => {
+    const el = document.getElementById('sc-' + k);
+    if (el) el.className = 'stat-chip';
+  });
+  const handledEl = document.getElementById('sc-HANDLED');
+  if (handledEl) handledEl.className = 'stat-chip';
+
+  buildPools();
+  renderStats();
+  updateTimer();
+  document.getElementById('msg-badge').textContent = '99+';
+
+  clearInterval(tik);
+  tik = setInterval(tick, 1000);
+  nextMsg();
+}
+
+function buildPools() {
+  const shuffle = arr => arr.sort(()=>Math.random()-0.5);
+  const genExtra = generateCards(40).map(m => ({...m, correct: correctReply(m.t, m.b)}));
+  const all = [...MSGS, ...genExtra];
+  pool1 = shuffle(all.filter(m=>m.d===1));
+  pool2 = shuffle(all.filter(m=>m.d===2));
+  pool3 = shuffle(all.filter(m=>m.d===3));
+}
+
+function pickFromPool(pool) {
+  if (pool.length === 0) return null;
+  const idx = Math.floor(Math.random()*pool.length);
+  return pool.splice(idx, 1)[0];
+}
+
+function tick() {
+  timeLeft--;
+  updateTimer();
+  if (timeLeft <= 0) { clearInterval(tik); endGame(); }
+}
+
+function updateTimer() {
+  const el = document.getElementById('timer');
+  const s = timeLeft % 60;
+  el.textContent = `${Math.floor(timeLeft/60)}:${String(s).padStart(2,'0')}`;
+  el.className = timeLeft <= 10 ? 'urgent' : '';
+}
+
+function nextMsg() {
+  if (timeLeft <= 0) return;
+  let card = null;
+  if (timeLeft > 45) {
+    card = pickFromPool(pool1) || pickFromPool(pool2);
+  } else if (timeLeft > 20) {
+    card = (Math.random() < 0.6 ? pickFromPool(pool1) : pickFromPool(pool2)) || pickFromPool(pool1) || pickFromPool(pool2);
+  } else {
+    card = (Math.random() < 0.5 ? pickFromPool(pool2) : pickFromPool(pool3)) || pickFromPool(pool2) || pickFromPool(pool3) || pickFromPool(pool1);
+  }
+  if (!card) {
+    const extra = generateCards(20).map(m => ({...m, correct: correctReply(m.t, m.b)}));
+    extra.forEach(m => { if(m.d===1) pool1.push(m); else if(m.d===2) pool2.push(m); else pool3.push(m); });
+    card = pickFromPool(pool1) || pickFromPool(pool2) || pickFromPool(pool3);
+  }
+  cur = card;
+  canClick = true;
+
+  document.getElementById('msg-area').innerHTML =
+    `<div class="msg-card in">
+       <div class="msg-sender">${cur.n}</div>
+       <div class="msg-body">${cur.b}</div>
+     </div>`;
+}
+
+function reply(r) {
+  if (!canClick || !cur) return;
+  canClick = false;
+
+  const card = document.querySelector('.msg-card');
+  if (card) card.classList.add('out');
+
+  const correct = r === cur.correct;
+
+  if (cur.easter) {
+    floatText('😄 对象会心一笑', true);
+    if (card) { card.classList.remove('out'); card.classList.add('correct'); }
+  } else if (!correct) {
+    Object.entries(cur.e).forEach(([k, d]) => {
+      if (!(k in stats)) return;
+      stats[k] = Math.max(0, stats[k] + d);
+      floatText(STAT_CFG[k].label + ' ' + (d > 0 ? '+' : '') + d, false);
+      // 首次触发该数值时，令其从屏幕浮现
+      if (!revealedStats.has(k)) {
+        revealedStats.add(k);
+        const el = document.getElementById('sc-' + k);
+        if (el) el.classList.add('visible');
+      }
+    });
+    renderStats();
+  } else {
+    if (card) { card.classList.remove('out'); card.classList.add('correct'); }
+    handled++;
+    const hEl = document.getElementById('sc-HANDLED');
+    if (hEl) {
+      hEl.textContent = '处理 ' + handled;
+      hEl.classList.add('visible');
+    }
+  }
+
+  replied++;
+  const remaining = Math.max(0, 99 - replied);
+  document.getElementById('msg-badge').textContent = remaining > 0 ? String(remaining) : '✓';
+
+  if (remaining === 0) {
+    clearInterval(tik);
+    canClick = false;
+    setTimeout(showCongrats, 350);
+    return;
+  }
+
+  const delay = timeLeft <= 15 ? 100 : 180;
+  setTimeout(nextMsg, delay);
+}
+
+/* ===== UI EFFECTS: 动画与视觉反馈 ===== */
+function flashCorrect() {
+  const el = document.getElementById('correct-flash');
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 100);
+}
+
+function floatText(text, pos) {
+  const game = document.getElementById('game');
+  const el = document.createElement('div');
+  el.className = 'float-txt' + (pos ? ' positive' : '');
+  el.textContent = text;
+  el.style.left = (Math.random() * 55 + 20) + '%';
+  el.style.top  = (Math.random() * 25 + 38) + '%';
+  game.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+function renderStats() {
+  Object.entries(stats).forEach(([k, v]) => {
+    const el = document.getElementById('sc-' + k);
+    if (!el) return;
+    const cfg = STAT_CFG[k];
+    const unit = cfg.unit || '';
+    el.textContent = cfg.label.slice(0,2) + ' ' + unit + v;
+    const revealed = revealedStats && revealedStats.has(k);
+    const hit = cfg.dir === 'max' ? v >= cfg.thresh * 0.6 : v <= cfg.init * 0.4;
+    el.className = 'stat-chip' + (revealed ? ' visible' : '') + (hit ? ' alert' : '');
+  });
+}
+
+/* ===== END SCREEN: 结算与恭喜弹窗 ===== */
+function endGame() {
+  canClick = false;
+  document.getElementById('msg-area').innerHTML = '';
+
+  const res = document.getElementById('end-results');
+  res.innerHTML = '';
+  const unlocked = [];
+
+  Object.entries(stats).forEach(([k, v]) => {
+    const cfg = STAT_CFG[k];
+    const hit = cfg.dir === 'max' ? v >= cfg.thresh : v <= cfg.thresh;
+    if (hit) unlocked.push(cfg.story);
+
+    const row = document.createElement('div');
+    row.className = 'result-row' + (hit ? ' unlocked' : '');
+    row.innerHTML = `
+      <div class="result-left">
+        <div class="result-name${hit ? ' red' : ''}">${cfg.label}</div>
+        ${hit ? `<div class="result-unlock">${cfg.story} 已解锁</div>` : ''}
+      </div>
+      <div class="result-val">${cfg.unit}${v}</div>`;
+    res.appendChild(row);
+  });
+
+  const handledRow = document.createElement('div');
+  handledRow.className = 'result-row';
+  handledRow.innerHTML = `
+    <div class="result-left"><div class="result-name">今日效率</div></div>
+    <div class="result-val">${handled} 条</div>`;
+  res.appendChild(handledRow);
+
+  document.getElementById('share-card').innerHTML =
+    `外卖丢了 <b>${stats.DELIVERY_LOST}</b> 单 &nbsp;/&nbsp; 老板耐心剩 <b>${stats.BOSS_PATIENCE}</b>% &nbsp;/&nbsp; 泄露了 <b>${stats.INFO_LEAK}</b> 次信息<br>
+     <span style="color:#555;font-size:12px;margin-top:4px;display:block">你能比我强吗？</span>`;
+
+  document.getElementById('end-screen').className = 'show';
+}
+
+function showCongrats() {
+  document.getElementById('msg-area').innerHTML = '';
+  document.getElementById('congrats-modal').className = 'show';
+}
+
+function dismissCongrats() {
+  document.getElementById('congrats-modal').className = '';
+  endGame();
+}
+
+function restart() {
+  startGame();
+}
+</script>
+</body>
+</html>
