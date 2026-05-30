@@ -1372,6 +1372,7 @@ let pool1, pool2, pool3;
 let guidanceQueue = [];
 let msgQueue = [];
 let msgPushInterval = 3; // 每N秒自动推一条消息
+let unreadCount = 0;
 let currentStoryline = null;
 let escapeType = null;
 let intrusionActive = false;
@@ -1493,7 +1494,8 @@ function startGameCore() {
   buildPools();
   renderStats();
   updateTimer();
-  document.getElementById('msg-badge').textContent = '99+';
+  unreadCount = 0;
+  document.getElementById('msg-badge').textContent = '0';
   msgQueue = [];
 
   clearInterval(tik);
@@ -1576,12 +1578,20 @@ function tick() {
   if (timeLeft <= 0) { clearInterval(tik); endGame(); return; }
   if (timeLeft === 45 && intrusionConfig && !intrusionActive && !intrusionTriggered) startIntrusion();
   if (timeLeft === 35 && intrusionActive) { endIntrusion(); return; }
-  // 自动推消息：非乱入时按间隔压入新卡
-  if (!intrusionActive) {
-    const interval = timeLeft > 30 ? 3 : timeLeft > 15 ? 2 : 1;
-    if ((60 - timeLeft) % interval === 0 || msgQueue.length === 0) {
-      pushNextCard();
+  // 乱入期间：每2秒自动推进下一张乱入卡（玩家未操作时）
+  if (intrusionActive && intrusionConfig) {
+    const elapsed = 45 - timeLeft; // 乱入已经过了多少秒
+    const expectedIdx = Math.min(Math.floor(elapsed / 2), intrusionConfig.cards.length - 1);
+    if (expectedIdx > intrusionCardIndex) {
+      intrusionCardIndex = expectedIdx;
+      showIntrusionCard(intrusionCardIndex);
     }
+    return;
+  }
+  // 自动推消息：非乱入时按间隔压入新卡
+  const interval = timeLeft > 30 ? 3 : timeLeft > 15 ? 2 : 1;
+  if ((60 - timeLeft) % interval === 0 || msgQueue.length === 0) {
+    pushNextCard();
   }
 }
 
@@ -1654,6 +1664,8 @@ function pushNextCard() {
   const card = pickCard();
   if (!card) return;
   msgQueue.push(card);
+  unreadCount++;
+  document.getElementById('msg-badge').textContent = unreadCount > 99 ? '99+' : String(unreadCount);
   playSfx('sfx-msg');
   renderMsgArea();
   cur = msgQueue[msgQueue.length - 1];
@@ -1746,15 +1758,8 @@ function reply(r) {
   }
 
   replied++;
-  const remaining = Math.max(0, 99 - replied);
-  document.getElementById('msg-badge').textContent = remaining > 0 ? String(remaining) : '✓';
-
-  if (remaining === 0) {
-    clearInterval(tik);
-    canClick = false;
-    setTimeout(showCongrats, 350);
-    return;
-  }
+  unreadCount = Math.max(0, unreadCount - 1);
+  document.getElementById('msg-badge').textContent = unreadCount > 99 ? '99+' : (unreadCount > 0 ? String(unreadCount) : '0');
 
   // 定向移除已处理的卡，防止竞态 pop 弹错
   const processedCard = cur;
@@ -1764,6 +1769,8 @@ function reply(r) {
     cur = msgQueue[msgQueue.length - 1] || null;
     canClick = msgQueue.length > 0;
     renderMsgArea();
+    // 队列清空时立即补一张
+    if (msgQueue.length === 0) pushNextCard();
   }, 200);
 }
 
