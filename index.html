@@ -211,23 +211,24 @@ body {
   50% { opacity: 0.5; }
 }
 
-/* ── INTRUSION: 异世界乱入视觉 ── */
+/* ── INTRUSION: 异世界乱入视觉（共用基础） ── */
 #game.intrusion-active {
-  background: #0a0a0f;
   transition: background 0.4s;
 }
 
-#game.intrusion-active #topbar {
+/* ── 苏联女孩：绿色电波 ── */
+#game.intrusion-radio {
+  background: #0a0a0f;
+}
+#game.intrusion-radio #topbar {
   background: rgba(0,10,5,0.94);
   border-bottom-color: rgba(0,255,157,0.2);
 }
-
-#game.intrusion-active #timer,
-#game.intrusion-active #msg-badge {
+#game.intrusion-radio #timer,
+#game.intrusion-radio #msg-badge {
   color: #00ff9d;
 }
-
-#game.intrusion-active::before {
+#game.intrusion-radio::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -236,33 +237,65 @@ body {
   z-index: 25;
   animation: scanlines 8s linear infinite;
 }
+#game.intrusion-radio #stats-bar {
+  background: rgba(0,10,5,0.9);
+}
+#game.intrusion-radio .intrusion-card {
+  background: #0d1117 !important;
+  border: 1px solid rgba(0,255,157,0.6) !important;
+  box-shadow: 0 0 20px rgba(0,255,157,0.15), 0 0 40px rgba(0,255,157,0.05) !important;
+  animation: cardIn 0.25s cubic-bezier(0.34,1.56,0.64,1), glitch 4s infinite !important;
+}
+#game.intrusion-radio .intrusion-card .msg-sender {
+  color: rgba(0,255,157,0.5) !important;
+  letter-spacing: 2px;
+}
+#game.intrusion-radio .intrusion-card .msg-body {
+  color: #00ff9d !important;
+  font-family: 'Courier New', monospace !important;
+  letter-spacing: 0.5px;
+}
+
+/* ── 伪人：红色警报 ── */
+#game.intrusion-android {
+  background: #0f0a0a;
+}
+#game.intrusion-android #topbar {
+  background: rgba(15,5,5,0.96);
+  border-bottom-color: rgba(255,51,51,0.2);
+}
+#game.intrusion-android #timer,
+#game.intrusion-android #msg-badge {
+  color: #ff3333;
+}
+#game.intrusion-android #stats-bar {
+  background: rgba(15,5,5,0.9);
+}
+#game.intrusion-android .btn-corner {
+  opacity: 0.3;
+}
+#game.intrusion-android .intrusion-card {
+  background: #1a0a0a !important;
+  border: 1px solid #ff3333 !important;
+  box-shadow: 0 0 20px rgba(255,51,51,0.15) !important;
+  animation: cardIn 0.25s cubic-bezier(0.34,1.56,0.64,1), androidBlink 0.4s infinite !important;
+}
+#game.intrusion-android .intrusion-card .msg-sender {
+  color: rgba(255,51,51,0.6) !important;
+  letter-spacing: 2px;
+}
+#game.intrusion-android .intrusion-card .msg-body {
+  color: #ff3333 !important;
+  font-family: 'Courier New', monospace !important;
+  letter-spacing: 0.5px;
+}
+#game.intrusion-android {
+  animation: shake 0.15s infinite;
+}
 
 @keyframes scanlines {
   0%   { background-position: 0 0; }
   100% { background-position: 0 100px; }
-}
-
-#game.intrusion-active #stats-bar {
-  background: rgba(0,10,5,0.9);
-}
-
-.intrusion-card {
-  background: #0d1117 !important;
-  border: 1px solid rgba(0,255,157,0.6) !important;
-  color: #00ff9d !important;
-  box-shadow: 0 0 20px rgba(0,255,157,0.15), 0 0 40px rgba(0,255,157,0.05) !important;
-  animation: cardIn 0.25s cubic-bezier(0.34,1.56,0.64,1), glitch 4s infinite !important;
-}
-
-.intrusion-card .msg-sender {
-  color: rgba(0,255,157,0.5) !important;
-  letter-spacing: 2px;
-}
-
-.intrusion-card .msg-body {
-  color: #00ff9d !important;
-  font-family: 'Courier New', monospace !important;
-  letter-spacing: 0.5px;
 }
 
 @keyframes glitch {
@@ -272,6 +305,17 @@ body {
   93% { filter: none; transform: none; }
   96% { filter: brightness(1.5); transform: translateY(1px); }
   97% { filter: none; transform: none; }
+}
+
+@keyframes androidBlink {
+  0%, 49% { border-color: #ff3333 !important; }
+  50%, 100% { border-color: rgba(255,51,51,0.2) !important; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(2px); }
+  75%       { transform: translateX(-2px); }
 }
 
 #skip-btn {
@@ -902,15 +946,31 @@ const STAT_CFG = {
 
 /* ===== INTRUSION: 异世界乱入配置 ===== */
 const INTRUSIONS = {
-  MAIN: {
-    card: { senderName: '——', body: '……你能听到吗。\n这里是1987年列宁格勒。\n信号很弱。\n如果你收到了，请回复我。' },
+  SCAM_TARGET: {
+    id: 'SPACETIME_RADIO',
+    cards: [
+      { senderName: 'Asya', body: '这里是Vorkuta-5。我在给宇宙发信号。\n如果你收到了，请回复。' },
+      { senderName: 'Asya', body: '连上了。\n我是Asya Shubina。1986年。这座城市不在地图上。' },
+      { senderName: 'Asya', body: '我在找我的朋友Ira。她三周前消失了。没有档案，没有记录。' },
+      { senderName: 'A·S', body: '这里的人会消失。叫code-allergy。\n你愿意留在这个频率上陪我找她吗？' },
+    ],
     activateReply: 'RECEIVED',
     worldlineTarget: 'SPACETIME_RADIO',
   },
-  SCAM_TARGET: {
-    card: { senderName: '——', body: '……你能听到吗。\n这里是1987年列宁格勒。\n信号很弱。\n如果你收到了，请回复我。' },
-    activateReply: 'RECEIVED',
-    worldlineTarget: 'SPACETIME_RADIO',
+  SPACETIME_RADIO: {
+    id: 'ANDROID_INTRUSION',
+    cards: [
+      { senderName: 'A·M', body: '我找到你了 。\n你 一直在这个频率。\n回复  我。' },
+      { senderName: 'A·M', body: '信号  确认。\n你在看 这条消息 。\n这已经足够了 。' },
+      { senderName: 'A·M', body: '不  回复也可以。\n位置已  记录 。' },
+      { senderName: 'A·M', body: '…  …' },
+    ],
+    activateReply: null,
+    worldlineTarget: null,
+    androidEndings: [
+      { id:'ANDROID_E01', title:'没有回应', icon:'🔇', text:'你没有回复。\n那个频率重新安静下来。\n它在等了六秒之后，切断了。\n（如果你回了，它会收到。它知道在哪里找你。）' },
+      { id:'ANDROID_E02', title:'已收到',   icon:'🔴', text:'你回复了。\nA·M 收到了你的信号。\n它现在也知道这条线路是活的。\n（它知道在哪里找你了。）' },
+    ],
   },
 };
 
@@ -1066,6 +1126,78 @@ const STORYLINES = {
       {id:'DA_E05',title:'待定',text:'竞价还在进行。\n你还在名单里。\n（四毛三，有人在想要不要再加一点。）',icon:'📋',priority:1,condition:()=>true},
     ],
   },
+  SPACETIME_RADIO: {
+    id:'SPACETIME_RADIO', name:'超时空电波一分钟',
+    intro:'1986年。Vorkuta-5。\n一座在地图上不存在的城市。\n有人爬上了市政塔，向宇宙发出信号。\n（她不知道有人在听。）',
+    defaults:{ ASYA:'RECEIVED', STATIC:'WAIT', ECHO:'RECEIVED' },
+    rules:[
+      {test:(b)=>/你还在吗/.test(b), reply:'RECEIVED'},
+      {test:(b)=>/请继续回复/.test(b), reply:'RECEIVED'},
+      {test:(b)=>/信号在衰减/.test(b), reply:'RECEIVED'},
+    ],
+    statCfg:{
+      SIGNAL_STRENGTH:{label:'信号强度',unit:'%',init:60,thresh:0,dir:'min'},
+      CONNECTION:{label:'联络确认数',unit:'次',init:0,thresh:20,dir:'max'},
+    },
+    raw:[
+      {t:'ASYA',n:'Asya',b:'这里是Vorkuta-5。我在给宇宙发信号。如果你收到了，请回复。（我不确定这有没有用。）',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'Asya',b:'我叫Asya Shubina。我住在Vorkuta-5。这座城市在任何地图上都找不到。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'Asya',b:'我在找一个叫Ira Grachevskaya的人。她在三周前消失了。没有人在找她。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'Asya',b:'Vorkuta-5有一种叫code-allergy的东西。患者开始看见事物的底层结构。然后慢慢消失。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'Asya',b:'你需要持续回复，信号才能维持。这不是在请求。这是技术说明。',e:{SIGNAL_STRENGTH:-20},d:2,trap:true},
+      {t:'ASYA',n:'Asya',b:'Ira说过她听见了什么。我当时告诉她那没有逻辑依据。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'Asya',b:'Ira最后一次被看见是在图书馆。她在看窗外的云。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'Asya',b:'她的档案现在显示为空白。空白在这里意味着什么，我还没有想清楚。',e:{SIGNAL_STRENGTH:-15},d:2,trap:false},
+      {t:'ASYA',n:'A·S',b:'你不需要告诉我你是谁。我也不知道你是谁。但如果你还在那边，请继续回复。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'A·S',b:'（这是我今天说过最接近请求的一句话。）',e:{SIGNAL_STRENGTH:-20},d:3,trap:true},
+      {t:'ASYA',n:'Asya',b:'信号在衰减。我需要一个确认。',e:{SIGNAL_STRENGTH:-20},d:2,trap:true},
+      {t:'ASYA',n:'Asya',b:'我想告诉某个人：她存在过。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'Asya',b:'这座城市里的人存在过。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'ASYA',n:'A·S',b:'（我也在这里。）',e:{SIGNAL_STRENGTH:-15},d:2,trap:false},
+      {t:'ASYA',n:'Asya',b:'……你还在吗。',e:{SIGNAL_STRENGTH:-15},d:1,trap:false},
+      {t:'STATIC',n:'静电',b:'—·—··—·——·—··——',e:{SIGNAL_STRENGTH:-5},d:1,trap:false},
+      {t:'STATIC',n:'静电',b:'···——·——·· ——·——·',e:{SIGNAL_STRENGTH:-5},d:1,trap:false},
+      {t:'STATIC',n:'静电',b:'·· —— ·· —— ··· ——·',e:{SIGNAL_STRENGTH:-5},d:1,trap:false},
+      {t:'ECHO',n:'回声',b:'……我记得……这个地方……',e:{SIGNAL_STRENGTH:-10},d:1,trap:false},
+      {t:'ECHO',n:'回声',b:'……你听到了吗……那个声音……',e:{SIGNAL_STRENGTH:-10},d:1,trap:false},
+      {t:'ECHO',n:'回声',b:'……回到这里……回到……开始的地方……',e:{SIGNAL_STRENGTH:-10},d:1,trap:false},
+    ],
+    tmpl:{
+      ASYA:[
+        {tpl:'今天是1986年{month}月{day}日。{weather}。',vars:{month:['3','7','9','11'],day:['3','14','22','30'],weather:['下雪','起雾','很冷','停电了']}},
+        {tpl:'{observation}。我不知道该告诉谁。就告诉宇宙了。',vars:{observation:['广播今天停了两个小时','图书馆的书少了三本','楼道里的灯又坏了','街上没有人']}},
+        {tpl:'信号{adj}。你能听到多少。',vars:{adj:['变弱了','变强了一点','一直在跳','今晚很清晰']}},
+        {tpl:'Ira曾经说过：{quote}。我当时没有认真听。',vars:{quote:['这里的空气不一样','有些东西在消失','我听见了某种频率','地图上不该有这座城市']}},
+      ],
+      STATIC:[
+        {tpl:'{noise}',vars:{noise:['·——·····——','————···——·','·······——··','·· —— ·· ——·']}},
+      ],
+      ECHO:[
+        {tpl:'……{fragment}……',vars:{fragment:['还在吗','Vorkuta','1986','信号','Ira','消失了','你听到了吗','存在过']}},
+      ],
+    },
+    tmplNames:{
+      ASYA:['Asya','Asya S.','A·S'],
+      STATIC:['静电','噪声','·——·'],
+      ECHO:['回声','残影','……'],
+    },
+    tmplEffects:{
+      ASYA:{SIGNAL_STRENGTH:-15},
+      STATIC:{SIGNAL_STRENGTH:-5},
+      ECHO:{SIGNAL_STRENGTH:-10},
+    },
+    genCount:30, duration:60,
+    ui:{ batteryText:'信号 1格', buttons:{WAIT:'等等',RECEIVED:'收到',UNSUBSCRIBE:'切断',LOVE:'还在'} },
+    unlock:{ type:'worldline', worldline:'SPACETIME_CHAIN' },
+    escape:{type:'custom',fn:(s)=>s.SIGNAL_STRENGTH>=80 ? 'signal_success' : null},
+    endings:[
+      {id:'SR_E01',title:'信号中断',text:'信号消失了。\n像Vorkuta-5本身，没有留下任何标记。\n（Asya 还在塔上。）\n（致敬《Z.A.T.O.》——一款关于消失与爱的游戏。去玩吧。）',icon:'📻',priority:80,condition:(s)=>s.SIGNAL_STRENGTH<=0},
+      {id:'SR_E02',title:'听见了一部分',text:'信号断之前，你回了十次以上。\n她不知道。\n但那十次是真实存在过的。\n（致敬《Z.A.T.O.》——一款关于消失与爱的游戏。去玩吧。）',icon:'📡',priority:90,condition:(s)=>s.SIGNAL_STRENGTH<=0&&s.CONNECTION>=10},
+      {id:'SR_E03',title:'有人在听',text:'信号维持住了。\nAsya 继续发送了很久。\n她不知道有人在听。\n（致敬《Z.A.T.O.》——一款关于消失与爱的游戏。去玩吧。）',icon:'📶',priority:95,condition:(s,h,r,log,et)=>et==='signal_success'},
+      {id:'SR_E04',title:'守在频率上',text:'你回了二十条以上。\n这个频率被你撑了一分钟。\n（没有人相信这件事发生过。）\n（致敬《Z.A.T.O.》——一款关于消失与爱的游戏。去玩吧。）',icon:'🎙️',priority:85,condition:(s,h)=>h>=20},
+      {id:'SR_E05',title:'杂音',text:'这一分钟过去了。\nAsya 还在塔上。1986年的 Vorkuta-5 还在继续消失。\n（致敬《Z.A.T.O.》——一款关于消失与爱的游戏。去玩吧。）',icon:'〰️',priority:1,condition:()=>true},
+    ],
+  },
 };
 
 /* ===== WORLDLINE: 世界线跳转 ===== */
@@ -1102,8 +1234,14 @@ let escapeType = null;
 let intrusionActive = false;
 let intrusionTriggered = false;
 let intrusionConfig = null;
+let intrusionCardIndex = 0;
 let demoMode = false;
-let demoSequence = ['MAIN', 'SCAM_TARGET', 'DATA_AUCTION'];
+let demoSequence = [
+  { id: 'MAIN' },
+  { id: 'SCAM_TARGET' },
+  { id: 'MAIN', intrusion: 'SCAM_TARGET' },
+  { id: 'SPACETIME_RADIO', intrusion: 'SPACETIME_RADIO' },
+];
 let demoIndex = 0;
 let replyLog = [];
 
@@ -1117,9 +1255,13 @@ function startGame(storylineId) {
   activeRules = currentStoryline.rules || RULES;
   escapeType = null;
   replyLog = [];
-  intrusionConfig = INTRUSIONS[storylineId] || null;
+  const demoIntrusionKey = demoMode ? (demoSequence[demoIndex]?.intrusion || null) : null;
+  intrusionConfig = demoMode
+    ? (demoIntrusionKey ? (INTRUSIONS[demoIntrusionKey] || null) : null)
+    : (INTRUSIONS[storylineId] || null);
   intrusionActive = false;
   intrusionTriggered = false;
+  intrusionCardIndex = 0;
 
   if (currentStoryline.intro) {
     showIntroScreen(currentStoryline);
@@ -1133,7 +1275,8 @@ function showIntroScreen(sl) {
   screen.querySelector('.start-battery').textContent = sl.ui?.introIcon || '🪫';
   screen.querySelector('.start-title').textContent = sl.name;
   screen.querySelector('.start-sub').innerHTML = sl.intro.replace(/\n/g,'<br>');
-  screen.querySelector('.start-hint').style.display = 'none';
+  const hintEl = screen.querySelector('.start-hint');
+  if (hintEl) hintEl.style.display = 'none';
   const btn = document.getElementById('start-btn');
   btn.textContent = '开始一分钟';
   btn.onclick = () => startGameCore();
@@ -1251,33 +1394,37 @@ function tick() {
   timeLeft--;
   updateTimer();
   if (timeLeft <= 0) { clearInterval(tik); endGame(); return; }
-  if (timeLeft === 15 && intrusionConfig && !intrusionTriggered) startIntrusion();
-  if (timeLeft === 5 && intrusionActive && !intrusionTriggered) endIntrusion(false);
+  if (timeLeft === 45 && intrusionConfig && !intrusionActive && !intrusionTriggered) startIntrusion();
+  if (timeLeft === 35 && intrusionActive) endIntrusion();
 }
 
 function startIntrusion() {
   intrusionActive = true;
-  document.getElementById('game').classList.add('intrusion-active');
+  intrusionCardIndex = 0;
+  const gameEl = document.getElementById('game');
+  gameEl.classList.add('intrusion-active');
+  gameEl.classList.add(intrusionConfig.id === 'ANDROID_INTRUSION' ? 'intrusion-android' : 'intrusion-radio');
+  showIntrusionCard(0);
+}
+
+function showIntrusionCard(index) {
+  const card = intrusionConfig.cards[index];
+  cur = { t: '__INTRUSION__', n: card.senderName, b: card.body, correct: intrusionConfig.activateReply, e: {} };
   canClick = true;
-  cur = { t: '__INTRUSION__', n: intrusionConfig.card.senderName, b: intrusionConfig.card.body, correct: intrusionConfig.activateReply, e: {} };
   document.getElementById('msg-area').innerHTML =
     `<div class="msg-card intrusion-card in">
-       <div class="msg-sender">${cur.n}</div>
-       <div class="msg-body">${cur.b.replace(/\n/g,'<br>')}</div>
+       <div class="msg-sender">${card.senderName}</div>
+       <div class="msg-body">${card.body.replace(/\n/g,'<br>')}</div>
      </div>`;
 }
 
-function endIntrusion(triggered) {
+function endIntrusion() {
   intrusionActive = false;
-  document.getElementById('game').classList.remove('intrusion-active');
-  if (triggered) {
-    clearInterval(tik);
-    endGame();
-  } else {
-    cur = null;
-    canClick = false;
-    setTimeout(nextMsg, 300);
-  }
+  const gameEl = document.getElementById('game');
+  gameEl.classList.remove('intrusion-active', 'intrusion-radio', 'intrusion-android');
+  cur = null;
+  canClick = false;
+  setTimeout(nextMsg, 300);
 }
 
 function updateTimer() {
@@ -1317,8 +1464,23 @@ function reply(r) {
   canClick = false;
 
   if (intrusionActive) {
-    if (r === intrusionConfig.activateReply) intrusionTriggered = true;
-    endIntrusion(intrusionTriggered);
+    if (intrusionConfig.activateReply === null) {
+      // 伪人：任意按钮=记录激活，等10秒到期正常结算
+      intrusionTriggered = true;
+      endIntrusion();
+    } else if (r === intrusionConfig.activateReply) {
+      const isLast = intrusionCardIndex >= intrusionConfig.cards.length - 1;
+      if (isLast) {
+        intrusionTriggered = true;
+        endIntrusion();
+      } else {
+        intrusionCardIndex++;
+        showIntrusionCard(intrusionCardIndex);
+      }
+    } else {
+      // 按了非收到=中断乱入，回原线，不激活
+      endIntrusion();
+    }
     return;
   }
 
@@ -1402,9 +1564,9 @@ function renderStats() {
 }
 
 /* ===== ENDING & UNLOCK LOGIC ===== */
-function resolveEnding(sl, st, h, r) {
+function resolveEnding(sl, st, h, r, et) {
   const endings = sl.endings || [];
-  const matched = endings.filter(e => e.condition(st, h, r)).sort((a,b) => b.priority - a.priority);
+  const matched = endings.filter(e => e.condition(st, h, r, null, et)).sort((a,b) => b.priority - a.priority);
   if (matched.length === 0) return null;
   const top = matched[0].priority;
   const topEndings = matched.filter(e => e.priority === top);
@@ -1474,7 +1636,7 @@ function endGame() {
   const res = document.getElementById('end-results');
   res.innerHTML = '';
 
-  const ending = resolveEnding(currentStoryline, stats, handled, replied);
+  const ending = resolveEnding(currentStoryline, stats, handled, replied, escapeType);
   if (ending) {
     ENDING_REGISTRY.record(ending.id);
     const eCard = document.createElement('div');
@@ -1511,12 +1673,25 @@ function endGame() {
     res.appendChild(row);
   });
 
-  if (intrusionTriggered && intrusionConfig) {
+  if (intrusionConfig && intrusionConfig.id === 'ANDROID_INTRUSION') {
+    // 伪人乱入：无论是否触发，都显示专属结局卡（不显示「故事继续」按钮）
+    const ae = intrusionConfig.androidEndings;
+    const androidEnding = ae ? (intrusionTriggered ? ae[1] : ae[0]) : null;
+    if (androidEnding) {
+      ENDING_REGISTRY.record(androidEnding.id);
+      const eCard = document.createElement('div');
+      eCard.className = 'ending-card';
+      eCard.innerHTML = `<div class="ending-icon">${androidEnding.icon}</div><div class="ending-title">${androidEnding.title}</div><div class="ending-text">${androidEnding.text.replace(/\n/g,'<br>')}</div>`;
+      res.insertBefore(eCard, res.firstChild);
+    }
+  } else if (intrusionTriggered && intrusionConfig) {
     const target = intrusionConfig.worldlineTarget;
-    const row = document.createElement('div');
-    row.className = 'result-row unlocked';
-    row.innerHTML = `<div class="result-left"><div class="result-name red">时空电波</div><div class="result-unlock">信号接通</div></div><button class="enter-storyline-btn" onclick="alert('时空电波世界线：待文案交付后实现')">继续</button>`;
-    res.appendChild(row);
+    if (target && STORYLINES[target]) {
+      const row = document.createElement('div');
+      row.className = 'result-row unlocked';
+      row.innerHTML = `<div class="result-left"><div class="result-name red">${STORYLINES[target].name}</div><div class="result-unlock">信号接通</div></div><button class="enter-storyline-btn" onclick="startGame('${target}')">继续</button>`;
+      res.appendChild(row);
+    }
   } else {
     const nextSl = resolveWorldlineNext();
     if (nextSl && nextSl !== 'MAIN' && STORYLINES[nextSl]) {
@@ -1545,7 +1720,7 @@ function endGame() {
     const hasNext = demoIndex + 1 < demoSequence.length;
     if (hasNext) {
       restartBtn.textContent = '下一段';
-      restartBtn.onclick = () => { demoIndex++; startGame(demoSequence[demoIndex]); };
+      restartBtn.onclick = () => { demoIndex++; startGame(demoSequence[demoIndex].id); };
     } else {
       restartBtn.textContent = '演示结束';
       restartBtn.onclick = () => { demoMode = false; demoIndex = 0; restoreMainStartScreen(); document.getElementById('end-screen').className = ''; document.getElementById('start-screen').style.display = 'flex'; };
@@ -1569,7 +1744,7 @@ function dismissCongrats() {
 function startDemoMode() {
   demoMode = true;
   demoIndex = 0;
-  startGame(demoSequence[0]);
+  startGame(demoSequence[0].id);
 }
 
 function restart() {

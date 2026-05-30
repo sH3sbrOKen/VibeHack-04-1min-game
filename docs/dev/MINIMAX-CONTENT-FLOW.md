@@ -1,6 +1,8 @@
 # MINIMAX-CONTENT-FLOW — 外部模型内容生成分工
 
 > 适用场景：用 MiniMax 免费 token 批量生成信息卡文案，降低 Claude Code 用量。
+>
+> 结局文案录入见 [ENDINGS-CONTENT-FLOW.md](./ENDINGS-CONTENT-FLOW.md)（CSV 批量导入流程）。
 
 ---
 
