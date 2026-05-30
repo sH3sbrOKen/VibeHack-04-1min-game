@@ -19,9 +19,9 @@
 2. ✅ 数值不砍，保留6个且未来可增。无厘头感是特性，"怎么又冒出一个"是目标体验
 3. ✅ 体验弧线：来不及 → 自暴自弃乱回 → 触发数值 → 发现失败解锁新内容 → 反转
 
-**仍在等待的设计决策**（需要你口述，我整理）：
-1. 🟡 新手前3条：具体卡牌选择和出牌间隔（见 D-3）
-2. 🟡 结算叙述句文案（见 D-5）
+**仍在等待的设计决策**：
+1. ✅ 新手前3条（见 D-3）
+2. ✅ 结算叙述句文案（见 D-5）
 3. 🟡 支线选择：第一个原型做哪条？信息卡内容？按钮是否变？（见 D-6）
 
 **新需求记录（待方案确认，未开发）**：
@@ -84,16 +84,26 @@
 - [x] 生成卡自动计算 correctReply（复用现有 BodyOverrideRule 引擎）
 - [x] 生成卡的 StatEffect 按 SenderType 默认规则分配
 
-**D-3：新手引导** `[DESIGN]` 🟡 等待你指定
-- [ ] `[DESIGN]` 指定前3条固定消息的内容和出牌间隔
+**D-3：新手引导** `[DESIGN]` ✅ 内容已确认（2026-05-30）
+- [x] `[DESIGN]` 前3条固定消息：
+  1. 饿了么「您的外卖快到了，麻烦帮忙开一下门禁」→ WAIT，开局2秒后出
+  2. 老板「明天早会9点，准时」→ RECEIVED，第1条消失后2秒
+  3. 陌生号码「【贷款】您的信用额度已提升至20万，点击领取」→ UNSUBSCRIBE，第2条消失后2秒
 - [ ] `[DEV]` 改 buildQueue()：前3条固定，之后按难度分段随机
 
 **D-4：难度按时间递进** `[DEV]` ✅ 已完成（2026-05-27）
 - [x] 改 nextMsg()：根据 timeLeft 决定从 d1/d2/d3 池子抽卡
 - [x] 最后15秒消息间隔从180ms缩短至100ms
 
-**D-5：结算叙事化** `[DESIGN]` 🟡 等待文案模板
-- [ ] `[DESIGN]` 提供叙述句模板（第二人称，遵循 COPY-STYLE.md）
+**D-5：结算叙事化** `[DESIGN]` ✅ 内容已确认（2026-05-30）
+- [x] `[DESIGN]` 叙述句模板：
+  - DELIVERY_LOST：有{n}单外卖，骑手没等到你。
+  - BOSS_PATIENCE：老板的耐心扣掉了{n}点。
+  - INFO_LEAK：你的号码泄露了{n}次。
+  - INTIMACY：亲密度掉了{n}。（对方还没说什么。）
+  - SPAM_SUBSCRIBED：你订阅了{n}条来自陌生人的关心。
+  - UNEXPECTED_CHARGE：意外支出{n}元。（大部分你不知道买了什么。）
+  - HANDLED：你回了{n}条。
 - [ ] `[DEV]` 替换 endGame() 的数字表为叙述句渲染
 
 **D-6：一条支线可玩** `[DESIGN]` 🟡 等待支线内容
@@ -105,49 +115,33 @@
 - [x] 更新 GDD 体验弧线、数值哲学、消息节奏描述
 - [x] 删除"多条同时弹出"，改为"消息间隔缩短"
 
-### 第三轮：v0.6 — 100个结局系统（🔴 黑客松截止前完成）
-> 目标：故事线引擎 + 结局系统 + 世界线跳转 + 策划内容集成
-> 截止：2026-05-30 18:00 路演前
-> 依赖：策划交付 STORYLINE-*.md 和 WORLDLINES.md（见 STORYLINE-PRODUCTION-GUIDE.md）
+### 第三轮：v0.6 — 路演就绪（🔴 黑客松截止前完成）
+> 截止：2026-05-30 18:00
+> 当前版本：引擎框架 + 结局系统 + 世界线 + SCAM_CHAIN 已完成
 
-**引擎框架** `[DEV]`
-- [ ] Storyline 配置系统：startGame(storylineId)，active* 变量切换
-- [ ] 故事线专属卡池生成：generateCardsForStoryline()
-- [ ] 动态数值条：rebuildStatChips()
-- [ ] 故事线开场画面：showIntroScreen()
-- [ ] 进入条件判定（数值阈值 + 行为模式 + 世界线跳转）
-- [ ] 脱离条件判定
+**已完成** `[DEV]` ✅
+- [x] Storyline 引擎：startGame(storylineId)、active* 变量、generateCardsForStoryline()
+- [x] 结局系统：ENDING_REGISTRY、resolveEnding()、结局卡 CSS、「结局收集 N/100」
+- [x] 世界线引擎：多分支 escapeType、resolveWorldlineNext()、WORLDLINES 路由
+- [x] 解锁系统：checkStorylineUnlocks()、结算页「进入」按钮、localStorage 持久化
+- [x] 主线 10 个结局（STORYLINE-MAIN.md 已集成）
+- [x] SCAM_TARGET 故事线（行为模式解锁 + 多分支脱离）
+- [x] DATA_AUCTION 故事线
+- [x] SCAM_CHAIN 世界线
 
-**结局系统** `[DEV]`
-- [ ] ENDING_REGISTRY + localStorage 持久化
-- [ ] resolveEnding() 结局解析
-- [ ] endGame() 改造：显示结局卡 + 收集进度
-- [ ] 结局卡 CSS
+**待完成** `[DEV]` 🔴
+- [ ] 路演演示模式：开始页「演示模式」按钮 + 固定序列自动串联（等文案填 DEMO 配置）
+- [ ] 游戏中「跳过→结算」按钮（不依赖文案，可立即做）
+- [ ] D-3：新手前3条固定消息 buildQueue() 改造（内容已确认 2026-05-30）
 
-**世界线系统** `[DEV]`
-- [ ] 世界线跳转引擎：读取脱离状态 → 决定下一条故事线
-- [ ] 结算页自动跳转提示（属于世界线时）
+**待完成** `[DESIGN]` 🟡
+- [ ] WORLDLINES.md 补充 DEMO 演示序列（文案最高优先级）
+- [ ] D-5：结算叙述句文案模板
+- [ ] 更多故事线交付（目标达到 100 个结局）
 
-**解锁与导航** `[DEV]`
-- [ ] checkStorylineUnlocks()
-- [ ] 结算页「进入」按钮
-- [ ] 开始页结局计数器
-- [ ] unlockedStorylines localStorage 持久化
-
-**内容集成** `[DEV]`（等策划交付后执行）
-- [ ] 主线 10 个结局（读取 STORYLINE-MAIN.md）
-- [ ] 各故事线数据转代码（读取 STORYLINE-*.md）
-- [ ] 世界线跳转规则转代码（读取 WORLDLINES.md）
-
-**消息覆盖机制** `[DEV]`
-- [ ] 不操作时新消息覆盖旧消息，延迟随进程缩短
-- [ ] 点击旧消息提至最前
-- [ ] 层数预留上限配置
-
-**其他**
-- [ ] `[DESIGN]` D-3 新手前3条固定消息 🟡 等待
-- [ ] `[DESIGN]` D-5 结算叙述句文案 🟡 等待
-- [ ] `[DEV]` 视觉打磨：答错屏幕微震、最后10秒背景变色
+**排期靠后** `[DEV]`
+- [ ] 消息覆盖机制（设计已确认，待排期）
+- [ ] 视觉打磨：答错屏幕微震、最后10秒背景变色
 
 ### 第四轮：v1.0 — 内容扩充（🟢 黑客松后）
 

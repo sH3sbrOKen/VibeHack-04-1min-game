@@ -449,6 +449,43 @@ body {
 
 .congrats-btn:active { opacity: 0.75; }
 
+/* ── ENDING CARD ── */
+.ending-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px 16px;
+  margin-bottom: 12px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.ending-icon { font-size: 36px; margin-bottom: 8px; }
+.ending-title { font-size: 18px; font-weight: 700; color: #000; margin-bottom: 6px; }
+.ending-text { font-size: 14px; color: #3C3C43; line-height: 1.7; }
+
+.ending-progress {
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: #8E8E93;
+  padding: 12px 0 4px;
+}
+
+.enter-storyline-btn {
+  padding: 8px 16px;
+  background: #007AFF;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.enter-storyline-btn:active { opacity: 0.75; }
+
 /* ── CORRECT FLASH ── */
 #correct-flash {
   position: absolute;
@@ -565,8 +602,10 @@ const RULES = [
 ];
 
 function correctReply(senderType, body) {
-  for (const r of RULES) if (r.test(body, senderType)) return r.reply;
-  return DEFAULTS[senderType];
+  const rules = activeRules || RULES;
+  const defaults = activeDefaults || DEFAULTS;
+  for (const r of rules) if (r.test(body, senderType)) return r.reply;
+  return defaults[senderType];
 }
 
 /* ===== DATA: 信息卡数据库 (RAW → MSGS) ===== */
@@ -752,29 +791,255 @@ const STAT_CFG = {
   UNEXPECTED_CHARGE:  { label:'意外扣费', unit:'¥',init:0,   thresh:200, dir:'max', story:'客服投诉一分钟' },
 };
 
+/* ===== STORYLINE: 故事线配置 ===== */
+const STORYLINES = {
+  MAIN: {
+    id:'MAIN', name:'今天不想回消息', intro:null,
+    defaults:null, rules:null, statCfg:null,
+    raw:null, tmpl:null, tmplNames:null, tmplEffects:null, genCount:40,
+    ui:null, duration:60,
+    unlock:{ type:'default' },
+    escape:null,
+    endings:[
+      {id:'MAIN_E01',title:'外卖已凉',text:'骑手在大堂等了十分钟。\n后来选择退单了。\n（被扣了好评。）',icon:'🛵',priority:80,condition:(s)=>s.DELIVERY_LOST>=3},
+      {id:'MAIN_E02',title:'移出群聊',text:'你被移出了「市场部工作群」。\n理由未知。\n（明天还是要上班。）',icon:'💼',priority:80,condition:(s)=>s.BOSS_PATIENCE<=0},
+      {id:'MAIN_E03',title:'全国闻名',text:'你的号码已进入三个数据库。\n估计这周会很热闹。\n（其中一个是婚介所的。）',icon:'📋',priority:80,condition:(s)=>s.INFO_LEAK>=3},
+      {id:'MAIN_E04',title:'已读不回',text:'对方看了你的消息。\n没有回。\n（你发的是「好的亲」。）',icon:'💔',priority:80,condition:(s)=>s.INTIMACY<=0},
+      {id:'MAIN_E05',title:'订阅成功',text:'你成功订阅了来自全国各地的关心。\n每天大概六到十二条。\n（其中一条是真人。）',icon:'📨',priority:80,condition:(s)=>s.SPAM_SUBSCRIBED>=5},
+      {id:'MAIN_E06',title:'余额归零',text:'本月意外支出共计超过两百元。\n大部分你不知道买了什么。\n（充了个会员，平台已跑路。）',icon:'💸',priority:80,condition:(s)=>s.UNEXPECTED_CHARGE>=200},
+      {id:'MAIN_E07',title:'全面失守',text:'外卖凉了，老板炸了。\n这一分钟非常均匀地毁掉了今天。\n（骑手给了差评。）',icon:'🌀',priority:90,condition:(s)=>s.DELIVERY_LOST>=3&&s.BOSS_PATIENCE<=0},
+      {id:'MAIN_E08',title:'人尽皆知',text:'你的号码现在属于所有人。\n他们都很热情。\n（其中一个想卖你保险。）',icon:'📡',priority:90,condition:(s)=>s.INFO_LEAK>=3&&s.SPAM_SUBSCRIBED>=5},
+      {id:'MAIN_E09',title:'认真的人',text:'你回了三十条以上。\n大概是今天最专注的一分钟。\n（外卖还是凉了。）',icon:'✅',priority:85,condition:(s,h)=>h>=30},
+      {id:'MAIN_E10',title:'还行',text:'这一分钟过去了。\n没有什么特别的事发生。\n（消息还在涨。）',icon:'📱',priority:1,condition:()=>true},
+    ],
+  },
+  SCAM_TARGET: {
+    id:'SCAM_TARGET', name:'被盯上一分钟',
+    intro:'你的号码进了一个名单。\n名单上的每个人都很忙。\n（他们专门盯着你。）',
+    defaults:{ SCAM_BANK:'UNSUBSCRIBE', SCAM_GOV:'UNSUBSCRIBE', SPAM_AD:'UNSUBSCRIBE', SPAM_PRIZE:'UNSUBSCRIBE' },
+    rules:[
+      {test:(b,t)=>/验证码/.test(b), reply:'UNSUBSCRIBE'},
+      {test:(b,t)=>/点击链接/.test(b), reply:'UNSUBSCRIBE'},
+    ],
+    statCfg:{
+      SCAM_ATTENTION:{label:'诈骗关注度',unit:'%',init:0,thresh:999,dir:'max'},
+      DATA_SOLD:{label:'信息转卖',unit:'次',init:0,thresh:999,dir:'max'},
+    },
+    raw:[
+      {t:'SCAM_BANK',n:'【汇通银行】',b:'您尾号3721的卡存在异常，请立即点此核实',e:{SCAM_ATTENTION:2},d:2,trap:true},
+      {t:'SCAM_GOV',n:'【社保局】',b:'您有一笔社保补贴未领取，今日截止',e:{SCAM_ATTENTION:2},d:2,trap:true},
+      {t:'SPAM_PRIZE',n:'恭喜您',b:'您已被选为本月幸运用户，奖励888元待领取',e:{SCAM_ATTENTION:1},d:1},
+      {t:'SCAM_BANK',n:'【全联支付】',b:'您的账户今日有一笔可疑支出，请确认',e:{SCAM_ATTENTION:2},d:3,trap:true},
+      {t:'SPAM_AD',n:'福利平台',b:'您的专属权益将在10分钟后失效',e:{SCAM_ATTENTION:1},d:1},
+      {t:'SCAM_GOV',n:'【税务局】',b:'您有退税款项待申请，回复1办理',e:{DATA_SOLD:1},d:3,trap:true},
+    ],
+    tmpl:{
+      SCAM_BANK:[
+        {tpl:'【{bank}】您尾号{num}的卡{issue}，请处理',vars:{bank:['汇通银行','华兴银行','全联支付'],num:['3721','8834','0092'],issue:['存在风险','需要验证','出现异常']}},
+        {tpl:'您的{card}账户{action}，点此确认',vars:{card:['信用卡','储蓄卡','网银'],action:['已被冻结','检测到登录','余额变动']}},
+      ],
+      SCAM_GOV:[
+        {tpl:'【{org}】您有{benefit}待领取，今日截止',vars:{org:['社保局','公积金中心','民政局'],benefit:['补贴','退款','权益金']}},
+        {tpl:'{org}提醒：您的{doc}需要更新，请配合',vars:{org:['车管所','医保中心','户籍管理'],doc:['驾照信息','医保档案','实名认证']}},
+      ],
+      SPAM_AD:[
+        {tpl:'您的{offer}还有{min}分钟到期',vars:{offer:['专属优惠','会员权益','红包'],min:['5','10','15']}},
+        {tpl:'{platform}为您准备了{amount}元无门槛券',vars:{platform:['XX商城','优惠中心','积分平台'],amount:['50','88','100']}},
+      ],
+      SPAM_PRIZE:[
+        {tpl:'恭喜您获得{prize}，点击领取',vars:{prize:['旗舰新机','现金红包888元','购物卡']}},
+        {tpl:'您是本{period}第{num}位幸运用户',vars:{period:['月','季度','年'],num:['3','7','18']}},
+      ],
+    },
+    tmplNames:{
+      SCAM_BANK:['汇通银行','华兴银行','全联支付'],
+      SCAM_GOV:['社保局','公积金中心','税务局'],
+      SPAM_AD:['XX商城','优惠中心','福利平台'],
+      SPAM_PRIZE:['恭喜您','中奖通知','幸运用户'],
+    },
+    tmplEffects:{
+      SCAM_BANK:{SCAM_ATTENTION:2},
+      SCAM_GOV:{SCAM_ATTENTION:2},
+      SPAM_AD:{SCAM_ATTENTION:1},
+      SPAM_PRIZE:{SCAM_ATTENTION:1},
+    },
+    genCount:30, duration:60,
+    ui:null,
+    unlock:{type:'behavior',fn:(s,h,r,log)=>{
+      if(log.length===0) return false;
+      const byType={};
+      log.forEach(l=>{if(!l.correct){byType[l.senderType]=(byType[l.senderType]||0)+1;}});
+      const spamErrors=(byType['SPAM']||0)+(byType['SUBSCRIPTION']||0);
+      if(spamErrors===0) return false;
+      return Object.values(byType).every(v=>v<=spamErrors);
+    }},
+    escape:{type:'custom',fn:(s,h,r,log)=>{
+      if(r===0) return 'silent';
+      if(log.length>0 && log.every(l=>l.reply==='UNSUBSCRIBE')) return 'defiant';
+      return null;
+    }},
+    endings:[
+      {id:'SCAM_E01',title:'消失术',text:'你一条都没有回。\n系统判定这个号码已停用。\n（他们去找下一个了。）',icon:'🌫️',priority:90,condition:(s,h,r)=>r===0},
+      {id:'SCAM_E02',title:'较真',text:'你每一条都退订了。\n他们注意到了。\n（这件事还没完。）',icon:'⚔️',priority:85,condition:(s,h,r)=>r>0&&replyLog.length>0&&replyLog.every(l=>l.reply==='UNSUBSCRIBE')},
+      {id:'SCAM_E03',title:'名单保留',text:'你的号码还在名单上。\n什么都没有解决。\n（试试一条都不回，或者全部退订。）',icon:'📋',priority:1,condition:()=>true},
+    ],
+  },
+  DATA_AUCTION: {
+    id:'DATA_AUCTION', name:'名单拍卖一分钟',
+    intro:'你的号码正在被竞价。\n七家公司，实时出价。\n（最高出价是四毛三。）',
+    defaults:{ BIDDER_LOAN:'UNSUBSCRIBE', BIDDER_INSURANCE:'UNSUBSCRIBE', BIDDER_REALTOR:'UNSUBSCRIBE', BIDDER_SCAM:'UNSUBSCRIBE' },
+    rules:[
+      {test:(b,t)=>/专属顾问/.test(b), reply:'UNSUBSCRIBE'},
+      {test:(b,t)=>/免费/.test(b), reply:'UNSUBSCRIBE'},
+    ],
+    statCfg:{
+      BID_PRICE:{label:'号码成交价',unit:'分',init:0,thresh:50,dir:'max'},
+      BUYER_COUNT:{label:'买家数量',unit:'家',init:0,thresh:5,dir:'max'},
+    },
+    raw:[
+      {t:'BIDDER_LOAN',n:'快速贷',b:'您已获得最高20万信用额度，专属顾问为您服务',e:{BID_PRICE:8},d:1},
+      {t:'BIDDER_REALTOR',n:'置家顾问',b:'您附近有三套在售房源，免费为您匹配',e:{BID_PRICE:10},d:2,trap:true},
+      {t:'BIDDER_SCAM',n:'安全中心',b:'您的账户存在风险，请立即联系专属客服',e:{BID_PRICE:15},d:3,trap:true},
+      {t:'BIDDER_INSURANCE',n:'全民保',b:'您有一份免费保障待激活，今日截止',e:{BID_PRICE:5},d:2,trap:true},
+      {t:'BIDDER_LOAN',n:'信贷中心',b:'您的资质评分已更新，点击查看额度',e:{BID_PRICE:8},d:1},
+      {t:'BIDDER_SCAM',n:'官方客服',b:'恭喜您，号码已被选为本月活跃用户',e:{BUYER_COUNT:2},d:3,trap:true},
+    ],
+    tmpl:{
+      BIDDER_LOAN:[
+        {tpl:'您的信用评分{score}分，可借{amount}万，{action}',vars:{score:['720','688','755'],amount:['5','10','20'],action:['立即申请','点击查看','专属通道']}},
+        {tpl:'{org}为您提供{rate}低息方案，今日专属',vars:{org:['信贷中心','快速贷','XX金融'],rate:['月息0.1%','年化3.6%','超低利率']}},
+      ],
+      BIDDER_INSURANCE:[
+        {tpl:'您有一份{type}险待领取，{action}',vars:{type:['意外','医疗','寿'],action:['免费激活','点击查看','限时申请']}},
+        {tpl:'{org}提醒您，{benefit}即将到期',vars:{org:['XX保险','全民保','平安无忧'],benefit:['保障权益','免费体验','专属福利']}},
+      ],
+      BIDDER_REALTOR:[
+        {tpl:'您附近{count}套房源降价，{action}',vars:{count:['2','3','5'],action:['免费看房','专属推荐','立即预约']}},
+        {tpl:'{area}新盘开放，总价{price}万起',vars:{area:['市中心','地铁旁','学区房'],price:['89','120','150']}},
+      ],
+      BIDDER_SCAM:[
+        {tpl:'您的{thing}存在异常，专属客服为您处理',vars:{thing:['账户','信息','资质']}},
+        {tpl:'系统检测到您{event}，请配合核实',vars:{event:['近期有大额消费','账号异地登录','信息需要更新']}},
+      ],
+    },
+    tmplNames:{
+      BIDDER_LOAN:['信贷中心','快速贷','XX金融'],
+      BIDDER_INSURANCE:['XX保险','全民保','平安无忧'],
+      BIDDER_REALTOR:['置家顾问','XX房产','安家中介'],
+      BIDDER_SCAM:['系统通知','官方客服','安全中心'],
+    },
+    tmplEffects:{
+      BIDDER_LOAN:{BID_PRICE:8}, BIDDER_INSURANCE:{BID_PRICE:5},
+      BIDDER_REALTOR:{BID_PRICE:10}, BIDDER_SCAM:{BID_PRICE:15},
+    },
+    genCount:30, duration:60, ui:null,
+    unlock:{type:'worldline'},
+    escape:{type:'no_action'},
+    endings:[
+      {id:'DA_E01',title:'成交',text:'你的号码以五毛三成交。\n买家是一家你没听说过的公司。\n（他们今天还会打来。）',icon:'🔨',priority:80,condition:(s)=>s.BID_PRICE>=50},
+      {id:'DA_E02',title:'众星捧月',text:'五家公司同时持有你的号码。\n他们互相不知道对方的存在。\n（你知道。）',icon:'🌟',priority:80,condition:(s)=>s.BUYER_COUNT>=5},
+      {id:'DA_E03',title:'明星号码',text:'你的号码创下了本平台单日最高成交记录。\n七家公司，总计两块八毛六。\n（系统给你发了一封感谢信。）',icon:'💎',priority:90,condition:(s)=>s.BID_PRICE>=50&&s.BUYER_COUNT>=5},
+      {id:'DA_E04',title:'流拍',text:'没有回应。\n系统标记这个号码为无效。\n（竞价撤回了。）',icon:'🌫️',priority:85,condition:(s,h,r)=>r===0},
+      {id:'DA_E05',title:'待定',text:'竞价还在进行。\n你还在名单里。\n（四毛三，有人在想要不要再加一点。）',icon:'📋',priority:1,condition:()=>true},
+    ],
+  },
+};
+
+/* ===== WORLDLINE: 世界线跳转 ===== */
+const WORLDLINES = {
+  SCAM_CHAIN:{
+    nodes:{
+      SCAM_TARGET:{ 'silent':'MAIN', 'defiant':'DATA_AUCTION', null:'MAIN' },
+      DATA_AUCTION:{ 'escaped':'MAIN', null:'MAIN' },
+    },
+  },
+};
+
+/* ===== ENDING REGISTRY: 结局收藏 ===== */
+const ENDING_REGISTRY = {
+  seen:{},
+  load(){ try{this.seen=JSON.parse(localStorage.getItem('1min_endings')||'{}');}catch(e){this.seen={};} },
+  save(){ localStorage.setItem('1min_endings',JSON.stringify(this.seen)); },
+  record(id){ if(!this.seen[id]) this.seen[id]={count:0,firstSeen:Date.now()}; this.seen[id].count++; this.save(); },
+  totalUnique(){ return Object.keys(this.seen).length; },
+  totalPossible(){ return 100; },
+};
+ENDING_REGISTRY.load();
+
+/* ===== UNLOCK REGISTRY: 解锁状态 ===== */
+let unlockedStorylines = {};
+try { unlockedStorylines = JSON.parse(localStorage.getItem('1min_unlocked')||'{}'); } catch(e) { unlockedStorylines={}; }
+function saveUnlocked(){ localStorage.setItem('1min_unlocked',JSON.stringify(unlockedStorylines)); }
+
 /* ===== STATE: 游戏状态变量 ===== */
 let stats, timeLeft, tik, cur, canClick, replied, revealedStats, handled;
 let pool1, pool2, pool3;
+let currentStoryline = null;
+let activeStatCfg = null, activeDefaults = null, activeRules = null;
+let escapeType = null;
+let replyLog = [];
 
 /* ===== GAME FLOW: 开始 → 消息 → 回复 → 结算 ===== */
-function startGame() {
+function startGame(storylineId) {
+  storylineId = storylineId || 'MAIN';
+  currentStoryline = STORYLINES[storylineId] || STORYLINES.MAIN;
+
+  activeStatCfg = currentStoryline.statCfg || STAT_CFG;
+  activeDefaults = currentStoryline.defaults || DEFAULTS;
+  activeRules = currentStoryline.rules || RULES;
+  escapeType = null;
+  replyLog = [];
+
+  if (currentStoryline.intro) {
+    showIntroScreen(currentStoryline);
+    return;
+  }
+  startGameCore();
+}
+
+function showIntroScreen(sl) {
+  const screen = document.getElementById('start-screen');
+  screen.querySelector('.start-battery').textContent = sl.ui?.introIcon || '🪫';
+  screen.querySelector('.start-title').textContent = sl.name;
+  screen.querySelector('.start-sub').innerHTML = sl.intro.replace(/\n/g,'<br>');
+  screen.querySelector('.start-hint').style.display = 'none';
+  const btn = document.getElementById('start-btn');
+  btn.textContent = '开始一分钟';
+  btn.onclick = () => startGameCore();
+  screen.style.display = 'flex';
+}
+
+function startGameCore() {
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('end-screen').className = '';
 
-  stats = Object.fromEntries(Object.entries(STAT_CFG).map(([k,v])=>[k,v.init]));
+  stats = Object.fromEntries(Object.entries(activeStatCfg).map(([k,v])=>[k,v.init]));
   revealedStats = new Set();
-  timeLeft = 60;
+  timeLeft = currentStoryline.duration || 60;
   replied = 0;
   handled = 0;
   canClick = false;
 
-  // 隐藏所有数值chip（含今日效率）
-  Object.keys(STAT_CFG).forEach(k => {
-    const el = document.getElementById('sc-' + k);
-    if (el) el.className = 'stat-chip';
-  });
-  const handledEl = document.getElementById('sc-HANDLED');
-  if (handledEl) handledEl.className = 'stat-chip';
+  rebuildStatChips(activeStatCfg);
+
+  if (currentStoryline.ui?.buttons) {
+    const bm = currentStoryline.ui.buttons;
+    if (bm.WAIT) document.getElementById('btn-wait').textContent = bm.WAIT;
+    if (bm.RECEIVED) document.getElementById('btn-received').textContent = bm.RECEIVED;
+    if (bm.UNSUBSCRIBE) document.getElementById('btn-unsubscribe').textContent = bm.UNSUBSCRIBE;
+    if (bm.LOVE) document.getElementById('btn-love').textContent = bm.LOVE;
+  } else {
+    document.getElementById('btn-wait').textContent = '等等';
+    document.getElementById('btn-received').textContent = '收到';
+    document.getElementById('btn-unsubscribe').textContent = '退订';
+    document.getElementById('btn-love').textContent = '好的亲';
+  }
+
+  if (currentStoryline.ui?.batteryText) {
+    document.getElementById('battery-display').lastChild.textContent = currentStoryline.ui.batteryText;
+  } else {
+    document.getElementById('battery-display').lastChild.textContent = '1%';
+  }
 
   buildPools();
   renderStats();
@@ -786,13 +1051,62 @@ function startGame() {
   nextMsg();
 }
 
+function rebuildStatChips(cfg) {
+  const bar = document.getElementById('stats-bar');
+  bar.innerHTML = '';
+  Object.entries(cfg).forEach(([k, c]) => {
+    const chip = document.createElement('span');
+    chip.className = 'stat-chip';
+    chip.id = 'sc-' + k;
+    chip.textContent = c.label.slice(0,2) + ' ' + (c.unit||'') + c.init;
+    bar.appendChild(chip);
+  });
+  const hChip = document.createElement('span');
+  hChip.className = 'stat-chip';
+  hChip.id = 'sc-HANDLED';
+  hChip.textContent = '处理 0';
+  bar.appendChild(hChip);
+}
+
 function buildPools() {
   const shuffle = arr => arr.sort(()=>Math.random()-0.5);
-  const genExtra = generateCards(40).map(m => ({...m, correct: correctReply(m.t, m.b)}));
-  const all = [...MSGS, ...genExtra];
+  const sl = currentStoryline;
+  const rawCards = sl.raw ? sl.raw.map(m=>({...m, correct:correctReply(m.t,m.b)})) : MSGS;
+  const gc = sl.genCount || 40;
+  const genExtra = sl.tmpl
+    ? generateCardsForStoryline(sl, gc).map(m=>({...m, correct:correctReply(m.t,m.b)}))
+    : generateCards(gc).map(m=>({...m, correct:correctReply(m.t,m.b)}));
+  const all = [...rawCards, ...genExtra];
   pool1 = shuffle(all.filter(m=>m.d===1));
   pool2 = shuffle(all.filter(m=>m.d===2));
   pool3 = shuffle(all.filter(m=>m.d===3));
+}
+
+function generateCardsForStoryline(sl, count) {
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const cards = [];
+  const types = Object.keys(sl.tmpl);
+  if (types.length === 0) return cards;
+  for (let i = 0; i < count; i++) {
+    const st = pick(types);
+    const templates = sl.tmpl[st];
+    if (!templates || templates.length === 0) continue;
+    const tpl = pick(templates);
+    let body = tpl.tpl;
+    if (tpl.vars) {
+      for (const [k,pool] of Object.entries(tpl.vars)) {
+        body = body.replace('{'+k+'}', pick(pool));
+      }
+    }
+    cards.push({
+      t: st,
+      n: pick((sl.tmplNames||{})[st] || [st]),
+      b: body,
+      e: {...((sl.tmplEffects||{})[st] || {})},
+      d: 1,
+    });
+  }
+  return cards;
 }
 
 function pickFromPool(pool) {
@@ -848,6 +1162,8 @@ function reply(r) {
 
   const correct = r === cur.correct;
 
+  replyLog.push({ senderType:cur.t, reply:r, correct });
+
   if (cur.easter) {
     floatText('😄 对象会心一笑', true);
     if (card) { card.classList.remove('out'); card.classList.add('correct'); }
@@ -855,8 +1171,7 @@ function reply(r) {
     Object.entries(cur.e).forEach(([k, d]) => {
       if (!(k in stats)) return;
       stats[k] = Math.max(0, stats[k] + d);
-      floatText(STAT_CFG[k].label + ' ' + (d > 0 ? '+' : '') + d, false);
-      // 首次触发该数值时，令其从屏幕浮现
+      floatText(activeStatCfg[k].label + ' ' + (d > 0 ? '+' : '') + d, false);
       if (!revealedStats.has(k)) {
         revealedStats.add(k);
         const el = document.getElementById('sc-' + k);
@@ -908,16 +1223,78 @@ function floatText(text, pos) {
 }
 
 function renderStats() {
+  const cfg = activeStatCfg || STAT_CFG;
   Object.entries(stats).forEach(([k, v]) => {
     const el = document.getElementById('sc-' + k);
-    if (!el) return;
-    const cfg = STAT_CFG[k];
-    const unit = cfg.unit || '';
-    el.textContent = cfg.label.slice(0,2) + ' ' + unit + v;
+    if (!el || !cfg[k]) return;
+    const c = cfg[k];
+    const unit = c.unit || '';
+    el.textContent = c.label.slice(0,2) + ' ' + unit + v;
     const revealed = revealedStats && revealedStats.has(k);
-    const hit = cfg.dir === 'max' ? v >= cfg.thresh * 0.6 : v <= cfg.init * 0.4;
+    const hit = c.dir === 'max' ? v >= c.thresh * 0.6 : v <= c.init * 0.4;
     el.className = 'stat-chip' + (revealed ? ' visible' : '') + (hit ? ' alert' : '');
   });
+}
+
+/* ===== ENDING & UNLOCK LOGIC ===== */
+function resolveEnding(sl, st, h, r) {
+  const endings = sl.endings || [];
+  const matched = endings.filter(e => e.condition(st, h, r)).sort((a,b) => b.priority - a.priority);
+  if (matched.length === 0) return null;
+  const top = matched[0].priority;
+  const topEndings = matched.filter(e => e.priority === top);
+  return topEndings[Math.floor(Math.random() * topEndings.length)];
+}
+
+function resolveEscapeType(sl) {
+  if (!sl.escape) return null;
+  const esc = sl.escape;
+  if (esc.type === 'no_action') return replied === 0 ? 'escaped' : null;
+  if (esc.type === 'stat') return (esc.op === '>=' ? (stats[esc.stat]||0) >= esc.value : (stats[esc.stat]||0) <= esc.value) ? 'escaped' : null;
+  if (esc.type === 'handled') return handled >= esc.value ? 'escaped' : null;
+  if (esc.type === 'custom' && typeof esc.fn === 'function') return esc.fn(stats, handled, replied, replyLog);
+  return null;
+}
+
+function checkStorylineUnlocks() {
+  const newly = [];
+  Object.entries(STORYLINES).forEach(([id, sl]) => {
+    if (id === 'MAIN' || unlockedStorylines[id]) return;
+    const u = sl.unlock;
+    if (!u) return;
+    let met = false;
+    if (u.type === 'stat') {
+      if (u.fromStoryline && u.fromStoryline !== currentStoryline.id) return;
+      const val = stats[u.stat];
+      if (val === undefined) return;
+      met = u.op === '>=' ? val >= u.value : val <= u.value;
+    } else if (u.type === 'handled') {
+      met = handled >= u.value;
+    } else if (u.type === 'replied') {
+      met = replied >= u.value;
+    } else if (u.type === 'ending') {
+      met = !!ENDING_REGISTRY.seen[u.endingId];
+    } else if (u.type === 'behavior' && typeof u.fn === 'function') {
+      met = u.fn(stats, handled, replied, replyLog);
+    }
+    if (met) {
+      unlockedStorylines[id] = true;
+      saveUnlocked();
+      newly.push(sl);
+    }
+  });
+  return newly;
+}
+
+function resolveWorldlineNext() {
+  const slId = currentStoryline.id;
+  for (const [wlId, wl] of Object.entries(WORLDLINES)) {
+    const node = wl.nodes && wl.nodes[slId];
+    if (!node) continue;
+    const key = escapeType !== null ? escapeType : null;
+    return key in node ? node[key] : node[null];
+  }
+  return null;
 }
 
 /* ===== END SCREEN: 结算与恭喜弹窗 ===== */
@@ -925,38 +1302,69 @@ function endGame() {
   canClick = false;
   document.getElementById('msg-area').innerHTML = '';
 
+  escapeType = resolveEscapeType(currentStoryline);
+
+  const cfg = activeStatCfg || STAT_CFG;
   const res = document.getElementById('end-results');
   res.innerHTML = '';
-  const unlocked = [];
+
+  const ending = resolveEnding(currentStoryline, stats, handled, replied);
+  if (ending) {
+    ENDING_REGISTRY.record(ending.id);
+    const eCard = document.createElement('div');
+    eCard.className = 'ending-card';
+    eCard.innerHTML = `<div class="ending-icon">${ending.icon}</div><div class="ending-title">${ending.title}</div><div class="ending-text">${ending.text.replace(/\n/g,'<br>')}</div>`;
+    res.appendChild(eCard);
+  }
 
   Object.entries(stats).forEach(([k, v]) => {
-    const cfg = STAT_CFG[k];
-    const hit = cfg.dir === 'max' ? v >= cfg.thresh : v <= cfg.thresh;
-    if (hit) unlocked.push(cfg.story);
-
+    const c = cfg[k];
+    if (!c) return;
+    const hit = c.dir === 'max' ? v >= c.thresh : v <= c.thresh;
     const row = document.createElement('div');
     row.className = 'result-row' + (hit ? ' unlocked' : '');
     row.innerHTML = `
       <div class="result-left">
-        <div class="result-name${hit ? ' red' : ''}">${cfg.label}</div>
-        ${hit ? `<div class="result-unlock">${cfg.story} 已解锁</div>` : ''}
+        <div class="result-name${hit ? ' red' : ''}">${c.label}</div>
+        ${hit && c.story ? `<div class="result-unlock">${c.story} 已解锁</div>` : ''}
       </div>
-      <div class="result-val">${cfg.unit}${v}</div>`;
+      <div class="result-val">${c.unit||''}${v}</div>`;
     res.appendChild(row);
   });
 
   const handledRow = document.createElement('div');
   handledRow.className = 'result-row';
-  handledRow.innerHTML = `
-    <div class="result-left"><div class="result-name">今日效率</div></div>
-    <div class="result-val">${handled} 条</div>`;
+  handledRow.innerHTML = `<div class="result-left"><div class="result-name">今日效率</div></div><div class="result-val">${handled} 条</div>`;
   res.appendChild(handledRow);
 
+  const newlyUnlocked = checkStorylineUnlocks();
+  newlyUnlocked.forEach(sl => {
+    const row = document.createElement('div');
+    row.className = 'result-row unlocked';
+    row.innerHTML = `<div class="result-left"><div class="result-name red">${sl.name}</div><div class="result-unlock">已解锁</div></div><button class="enter-storyline-btn" onclick="startGame('${sl.id}')">进入</button>`;
+    res.appendChild(row);
+  });
+
+  const nextSl = resolveWorldlineNext();
+  if (nextSl && nextSl !== 'MAIN' && STORYLINES[nextSl]) {
+    const row = document.createElement('div');
+    row.className = 'result-row unlocked';
+    row.innerHTML = `<div class="result-left"><div class="result-name red">${STORYLINES[nextSl].name}</div><div class="result-unlock">故事继续</div></div><button class="enter-storyline-btn" onclick="startGame('${nextSl}')">继续</button>`;
+    res.appendChild(row);
+  }
+
+  const progressEl = document.createElement('div');
+  progressEl.className = 'ending-progress';
+  progressEl.textContent = '结局收集 ' + ENDING_REGISTRY.totalUnique() + ' / ' + ENDING_REGISTRY.totalPossible();
+  res.appendChild(progressEl);
+
   document.getElementById('share-card').innerHTML =
-    `外卖丢了 <b>${stats.DELIVERY_LOST}</b> 单 &nbsp;/&nbsp; 老板耐心剩 <b>${stats.BOSS_PATIENCE}</b>% &nbsp;/&nbsp; 泄露了 <b>${stats.INFO_LEAK}</b> 次信息<br>
-     <span style="color:#555;font-size:12px;margin-top:4px;display:block">你能比我强吗？</span>`;
+    currentStoryline.id === 'MAIN'
+    ? `外卖丢了 <b>${stats.DELIVERY_LOST||0}</b> 单 &nbsp;/&nbsp; 老板耐心剩 <b>${stats.BOSS_PATIENCE||0}</b>% &nbsp;/&nbsp; 泄露了 <b>${stats.INFO_LEAK||0}</b> 次信息<br><span style="color:#555;font-size:12px;margin-top:4px;display:block">你能比我强吗？</span>`
+    : `<b>${currentStoryline.name}</b><br><span style="color:#555;font-size:12px;margin-top:4px;display:block">${ending ? ending.title : '一分钟结束了'}</span>`;
 
   document.getElementById('end-screen').className = 'show';
+  document.querySelector('.end-title').textContent = currentStoryline.name;
 }
 
 function showCongrats() {
@@ -970,7 +1378,23 @@ function dismissCongrats() {
 }
 
 function restart() {
-  startGame();
+  document.getElementById('start-screen').querySelector('.start-hint').style.display = 'flex';
+  const btn = document.getElementById('start-btn');
+  btn.textContent = '开始一分钟';
+  btn.onclick = () => startGame('MAIN');
+  startGame('MAIN');
+}
+
+function restoreMainStartScreen() {
+  const screen = document.getElementById('start-screen');
+  screen.querySelector('.start-battery').textContent = '🪫';
+  screen.querySelector('.start-title').textContent = '今天不想回消息';
+  screen.querySelector('.start-hint').style.display = 'flex';
+  screen.querySelector('.start-sub').innerHTML =
+    '昨晚有停电通知。你没看到。<br><br>醒来已经晚了，手机剩 <em>1%</em> 电。<br>老板在催，同事在问，快递等你开门禁，<br>你用 claw 自动订的早饭和咖啡刚到楼下，<br>还有几个你叫不出名字但号码眼熟的来电。<br><br>预存了四条回复。<br>在找到充电器之前，先用它们把消息处理完。<br><br><span class="start-sub-note">（应该够用的。）</span>';
+  const btn = document.getElementById('start-btn');
+  btn.textContent = '开始一分钟';
+  btn.onclick = () => startGame('MAIN');
 }
 </script>
 </body>
