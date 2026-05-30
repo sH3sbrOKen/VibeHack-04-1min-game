@@ -1575,7 +1575,7 @@ function tick() {
   updateTimer();
   if (timeLeft <= 0) { clearInterval(tik); endGame(); return; }
   if (timeLeft === 45 && intrusionConfig && !intrusionActive && !intrusionTriggered) startIntrusion();
-  if (timeLeft === 35 && intrusionActive) endIntrusion();
+  if (timeLeft === 35 && intrusionActive) { endIntrusion(); return; }
   // 自动推消息：非乱入时按间隔压入新卡
   if (!intrusionActive) {
     const interval = timeLeft > 30 ? 3 : timeLeft > 15 ? 2 : 1;
@@ -1656,14 +1656,14 @@ function pushNextCard() {
   msgQueue.push(card);
   playSfx('sfx-msg');
   renderMsgArea();
-  cur = msgQueue[0];
+  cur = msgQueue[msgQueue.length - 1];
   canClick = msgQueue.length > 0;
 }
 
 function renderMsgArea() {
   const area = document.getElementById('msg-area');
   area.innerHTML = '';
-  const visible = msgQueue.slice(0, 4);
+  const visible = msgQueue.slice(-4).reverse();
   visible.forEach((card, i) => {
     const el = document.createElement('div');
     el.className = 'msg-card' + (i === 0 ? ' active-card' : ' stacked-card');
@@ -1756,10 +1756,12 @@ function reply(r) {
     return;
   }
 
-  // 移除队首，200ms后更新渲染
+  // 定向移除已处理的卡，防止竞态 pop 弹错
+  const processedCard = cur;
   setTimeout(() => {
-    msgQueue.shift();
-    cur = msgQueue[0] || null;
+    const idx = msgQueue.indexOf(processedCard);
+    if (idx !== -1) msgQueue.splice(idx, 1);
+    cur = msgQueue[msgQueue.length - 1] || null;
     canClick = msgQueue.length > 0;
     renderMsgArea();
   }, 200);
