@@ -630,6 +630,20 @@ body {
   z-index: 5;
   transition: opacity 0.1s;
 }
+
+/* ── IMPORT MODAL ── */
+#import-btn { margin-top: 8px; background: none; border: 1px solid #ccc; color: #888; font-size: 13px; padding: 8px 20px; border-radius: 20px; cursor: pointer; }
+#import-btn:active { background: rgba(0,0,0,0.05); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 299; }
+.modal-box { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; border-radius: 16px; padding: 24px; width: 300px; z-index: 300; display: flex; flex-direction: column; gap: 12px; }
+.modal-title { font-size: 16px; font-weight: 600; color: #1c1c1e; }
+.modal-hint { font-size: 12px; color: #888; line-height: 1.5; }
+#import-textarea { height: 160px; resize: none; border: 1px solid #ddd; border-radius: 10px; padding: 10px; font-size: 13px; line-height: 1.6; font-family: inherit; outline: none; }
+#import-textarea:focus { border-color: #aaa; }
+.import-error { font-size: 12px; color: #e55; min-height: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-actions button { padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; border: 1px solid #ddd; background: #f5f5f5; color: #333; }
+.modal-actions .btn-primary { background: #1c1c1e; color: #fff; border-color: #1c1c1e; }
 </style>
 </head>
 <body>
@@ -651,6 +665,29 @@ body {
     </div>
     <button id="start-btn" onclick="startGame()">开始一分钟</button>
     <button id="demo-btn" onclick="startDemoMode()">VibeHack04 路演模式</button>
+    <button id="import-btn" onclick="showImportModal()">导入我的消息</button>
+  </div>
+
+  <!-- Audio -->
+  <audio id="bgm-main"      src="music/bgm-main.wav"      loop preload="auto"></audio>
+  <audio id="bgm-start"     src="music/bgm-start.wav"     loop preload="auto"></audio>
+  <audio id="bgm-soviet"    src="music/bgm-soviet.wav"    loop preload="auto"></audio>
+  <audio id="bgm-spacetime" src="music/bgm-spacetime.wav" loop preload="auto"></audio>
+  <audio id="bgm-android"   src="music/bgm-android.wav"   loop preload="auto"></audio>
+
+  <!-- Import Modal -->
+  <div id="import-modal" style="display:none">
+    <div class="modal-overlay" onclick="hideImportModal()"></div>
+    <div class="modal-box">
+      <div class="modal-title">导入消息记录</div>
+      <div class="modal-hint">每行一条，格式：发信人：消息内容</div>
+      <textarea id="import-textarea" placeholder="张三：明天开会&#10;外卖小哥：您的订单已送达&#10;18888888888：您有一笔贷款待领取"></textarea>
+      <div id="import-error" class="import-error"></div>
+      <div class="modal-actions">
+        <button onclick="hideImportModal()">取消</button>
+        <button class="btn-primary" onclick="startCustomGame()">开始</button>
+      </div>
+    </div>
   </div>
 
   <!-- Topbar -->
@@ -994,6 +1031,36 @@ const STORYLINES = {
       {id:'MAIN_E08',title:'人尽皆知',text:'你的号码现在属于所有人。\n他们都很热情。\n（其中一个想卖你保险。）',icon:'📡',priority:90,condition:(s)=>s.INFO_LEAK>=3&&s.SPAM_SUBSCRIBED>=5},
       {id:'MAIN_E09',title:'认真的人',text:'你回了三十条以上。\n大概是今天最专注的一分钟。\n（外卖还是凉了。）',icon:'✅',priority:85,condition:(s,h)=>h>=30},
       {id:'MAIN_E10',title:'还行',text:'这一分钟过去了。\n没有什么特别的事发生。\n（消息还在涨。）',icon:'📱',priority:1,condition:()=>true},
+      {id:'MAIN_E11',title:'连环退单',icon:'🔄',text:'外卖连续丢失三单。\n平台自动暂停接单。\n（骑手黑名单悄然形成。）',priority:80,condition:(s)=>s.DELIVERY_LOST>=3},
+      {id:'MAIN_E13',title:'信息全泄露',icon:'📤',text:'号码和住址被传开。\n骚扰电话开始响起。\n（精准营销的时代。）',priority:80,condition:(s)=>s.INFO_LEAK>=3},
+      {id:'MAIN_E14',title:'社交阵亡',icon:'💀',text:'亲密度彻底归零。\n对话框变成摆设。\n（对方已开启好友验证。）',priority:80,condition:(s)=>s.INTIMACY<=0},
+      {id:'MAIN_E15',title:'订阅狂魔',icon:'📬',text:'垃圾订阅堆积五个。\n邮箱变成杂货铺。\n（退订链接点到手软。）',priority:80,condition:(s)=>s.SPAM_SUBSCRIBED>=5},
+      {id:'MAIN_E16',title:'钱包清仓',icon:'💸',text:'意外扣款突破两百。\n余额只剩零头。\n（信用卡账单待还。）',priority:80,condition:(s)=>s.UNEXPECTED_CHARGE>=200},
+      {id:'MAIN_E19',title:'信息贩卖',icon:'🛒',text:'信息泄露四次。\n被标记为高价值名单。\n（黑市行情看涨。）',priority:85,condition:(s)=>s.INFO_LEAK>=4},
+      {id:'MAIN_E23',title:'双重暴击',icon:'💥',text:'外卖丢了三单，老板也走了。\n工作和生活同时崩盘。\n（成年人不易。）',priority:90,condition:(s)=>s.DELIVERY_LOST>=3&&s.BOSS_PATIENCE<=0},
+      {id:'MAIN_E24',title:'隐私裸奔',icon:'🕶️',text:'信息泄露三次，订阅五个。\n全世界都知道你了。\n（大数据比你更了解你。）',priority:90,condition:(s)=>s.INFO_LEAK>=3&&s.SPAM_SUBSCRIBED>=5},
+      {id:'MAIN_E25',title:'财困绝境',icon:'🌀',text:'余额归零，信息也漏了。\n财务和隐私双重危机。\n（雪上加霜。）',priority:90,condition:(s)=>s.UNEXPECTED_CHARGE>=200&&s.INFO_LEAK>=3},
+      {id:'MAIN_E26',title:'全网社死',icon:'📡',text:'外卖丢了三单，亲密度也零了。\n生活全方位熄火。\n（连外卖小哥都认识你。）',priority:90,condition:(s)=>s.DELIVERY_LOST>=3&&s.INTIMACY<=0},
+      {id:'MAIN_E27',title:'三线崩溃',icon:'🌋',text:'老板走了，信息漏了，订阅爆了。\n三重暴击同时到来。\n（祸不单行。）',priority:90,condition:(s)=>s.BOSS_PATIENCE<=0&&s.INFO_LEAK>=3&&s.SPAM_SUBSCRIBED>=5},
+      {id:'MAIN_E28',title:'消息达人',icon:'💬',text:'处理消息超过四十条。\n键盘侠称号获得。\n（打字速度质的飞跃。）',priority:80,condition:(s,h)=>h>=40},
+      {id:'MAIN_E29',title:'回复狂人',icon:'🔁',text:'回复总数超过五十次。\n话痨属性已点满。\n（打字时长破纪录。）',priority:80,condition:(s,h,r)=>r>=50},
+      {id:'MAIN_E31',title:'话痨日常',icon:'🗣️',text:'发送消息六十条以上。\n群聊气氛担当。\n（打字速度再次刷新。）',priority:80,condition:(s,h)=>h>=60},
+      {id:'MAIN_E32',title:'回复轰炸',icon:'📠',text:'回复七十次以上。\n对方消息全部秒回。\n（在线客服既视感。）',priority:80,condition:(s,h,r)=>r>=70},
+      {id:'MAIN_E34',title:'沉默是金',icon:'🤫',text:'消息处理量低于十。\n全程高冷在线。\n（字字玑珠。）',priority:80,condition:(s,h)=>h<=10},
+      {id:'MAIN_E35',title:'冷淡到底',icon:'🧊',text:'回复次数低于五次。\n惜字如金。\n（已读就是最大尊重。）',priority:80,condition:(s,h,r)=>r<=5},
+      {id:'MAIN_E38',title:'安全下车',icon:'✅',text:'没有任何负面状态累积。\n全身而退。\n（天选之人。）',priority:85,condition:(s)=>s.DELIVERY_LOST<3&&s.BOSS_PATIENCE>0&&s.INFO_LEAK<3&&s.INTIMACY>0&&s.SPAM_SUBSCRIBED<5&&s.UNEXPECTED_CHARGE<200},
+      {id:'MAIN_E39',title:'极限操作',icon:'🎲',text:'所有数值都在临界点。\n差之毫厘。\n（命运骰子落定。）',priority:80,condition:(s)=>s.DELIVERY_LOST===2||s.BOSS_PATIENCE===1||s.INFO_LEAK===2||s.INTIMACY===1||s.SPAM_SUBSCRIBED===4||s.UNEXPECTED_CHARGE===199},
+      {id:'MAIN_E40',title:'普通结局',icon:'🌿',text:'没有特别出彩，也没有大错。\n中规中矩的一天。\n（平凡是真。）',priority:1,condition:()=>true},
+      {id:'MAIN_E41',title:'社交垃圾站',icon:'🗑️',text:'亲密度归零，订阅也爆了。\n社交形象彻底崩塌。\n（垃圾信息满天飞。）',priority:90,condition:(s)=>s.INTIMACY<=0&&s.SPAM_SUBSCRIBED>=5},
+      {id:'MAIN_E42',title:'外卖订阅双崩',icon:'📦',text:'丢单三次，订阅也五个了。\n生活秩序全面失控。\n（平台建议换账号。）',priority:90,condition:(s)=>s.DELIVERY_LOST>=3&&s.SPAM_SUBSCRIBED>=5},
+      {id:'MAIN_E43',title:'钱困情伤',icon:'💔',text:'余额清零，亲密度也没了。\n爱情和面包同时消失。\n（贫贱夫妻百事哀。）',priority:90,condition:(s)=>s.UNEXPECTED_CHARGE>=200&&s.INTIMACY<=0},
+      {id:'MAIN_E44',title:'双输局面',icon:'⚔️',text:'老板走人，亲密度也清零。\n职场社交双重失意。\n（两边都不待见。）',priority:90,condition:(s)=>s.BOSS_PATIENCE<=0&&s.INTIMACY<=0},
+      {id:'MAIN_E45',title:'裸奔社交',icon:'📱',text:'信息泄露三次，亲密度也凉了。\n隐私和感情双输。\n（人肉搜索素材。）',priority:90,condition:(s)=>s.INFO_LEAK>=3&&s.INTIMACY<=0},
+      {id:'MAIN_E46',title:'外卖钱包双杀',icon:'🔪',text:'外卖丢了三单，扣款两百。\n财务和配送双重危机。\n（雪上加霜plus。）',priority:90,condition:(s)=>s.DELIVERY_LOST>=3&&s.UNEXPECTED_CHARGE>=200},
+      {id:'MAIN_E47',title:'轻度参与者',icon:'👀',text:'处理消息二十条。\n围观心态明显。\n（吃瓜群众的日常。）',priority:80,condition:(s,h)=>h>=20&&h<30},
+      {id:'MAIN_E48',title:'沉默回复者',icon:'📝',text:'回复了三十条消息。\n话不多但都在点。\n（言简意赅本人。）',priority:80,condition:(s,h,r)=>r>=20&&r<50},
+      {id:'MAIN_E49',title:'话痨预警',icon:'🗨️',text:'回复比高达八成以上。\n话匣子完全打开。\n（打字速度跟不上思路。）',priority:80,condition:(s,h,r)=>h>=10&&r>=h*0.8},
+      {id:'MAIN_E50',title:'冷场王',icon:'🥶',text:'回复比不足三成。\n全程高冷在线。\n（已读已是最大尊重。）',priority:80,condition:(s,h,r)=>h>=10&&r<h*0.3},
     ],
   },
   SCAM_TARGET: {
@@ -1065,6 +1132,23 @@ const STORYLINES = {
       {id:'SCAM_E01',title:'消失术',text:'你一条都没有回。\n系统判定这个号码已停用。\n（他们去找下一个了。）',icon:'🌫️',priority:90,condition:(s,h,r)=>r===0},
       {id:'SCAM_E02',title:'较真',text:'你每一条都退订了。\n他们注意到了。\n（这件事还没完。）',icon:'⚔️',priority:85,condition:(s,h,r)=>r>0&&replyLog.length>0&&replyLog.every(l=>l.reply==='UNSUBSCRIBE')},
       {id:'SCAM_E03',title:'名单保留',text:'你的号码还在名单上。\n什么都没有解决。\n（试试一条都不回，或者全部退订。）',icon:'📋',priority:1,condition:()=>true},
+      {id:'SCAM_E04',title:'高活猎物',icon:'🎯',text:'该号码全部响应类型为RECEIVED。\n诈骗关注度已达峰值。\n（可转化率：预估87%。）',priority:80,condition:(s)=>s.SCAM_ATTENTION>=80},
+      {id:'SCAM_E05',title:'半途而废',icon:'⏸️',text:'该号码前期响应均为RECEIVED。\n后期转为WAIT，疑似警觉。\n（黑名单权重暂缓提升。）',priority:80,condition:(s)=>s.SCAM_ATTENTION>=50&&s.SCAM_ATTENTION<80},
+      {id:'SCAM_E06',title:'冷淡猎物',icon:'💤',text:'该号码响应稀少且迟缓。\n诈骗关注度处于低位。\n（建议：降低发送频率。）',priority:80,condition:(s)=>s.SCAM_ATTENTION<20},
+      {id:'SCAM_E07',title:'沉默目标',icon:'🔇',text:'该号码全程未响应任何消息。\n已标记为静默流失。\n（但仍保留于数据库。）',priority:80,condition:(s,h,r,log,et)=>et==='silent'},
+      {id:'SCAM_E08',title:'抵抗者',icon:'🛡️',text:'该号码存在大量UNSUBSCRIBE响应。\n已被系统判定为维权倾向。\n（竞拍底价下调20%。）',priority:80,condition:(s,h,r,log,et)=>et==='defiant'},
+      {id:'SCAM_E09',title:'数据商品',icon:'📤',text:'该号码信息已被转卖三次。\n下游买家反馈质量良好。\n（第四批正在打包。）',priority:90,condition:(s)=>s.DATA_SOLD>=3},
+      {id:'SCAM_E10',title:'数据热区',icon:'🔥',text:'该号码信息被高频转卖。\n已被标记为高价值数据源。\n（黑市价格持续走高。）',priority:95,condition:(s)=>s.DATA_SOLD>=5},
+      {id:'SCAM_E11',title:'等待型用户',icon:'⏳',text:'该号码响应全部为WAIT类型。\n无实际交互，无资金流动。\n（系统评分：待观察。）',priority:80,condition:(s)=>s.SCAM_ATTENTION>=20&&s.SCAM_ATTENTION<40},
+      {id:'SCAM_E12',title:'混合响应',icon:'🔀',text:'该号码响应类型混杂。\nRECEIVED、WAIT交替出现。\n（情绪波动大，难定位。）',priority:80,condition:(s)=>s.SCAM_ATTENTION>=40&&s.SCAM_ATTENTION<60},
+      {id:'SCAM_E13',title:'高活跃低转化',icon:'📊',text:'该号码处理消息超五十条。\n但实际RECEIVED仅占三成。\n（精力旺盛，价值存疑。）',priority:80,condition:(s,h,r)=>h>=50&&r<h*0.5},
+      {id:'SCAM_E14',title:'话痨型猎物',icon:'💬',text:'该号码回复数突破七十。\n大量RECEIVED响应。\n（每条响应成本：0.3元。）',priority:80,condition:(s,h,r)=>r>=70&&s.SCAM_ATTENTION>=60},
+      {id:'SCAM_E15',title:'感情型',icon:'❤️',text:'该号码出现LOVE类型响应。\n情绪投入度高。\n（推荐：杀猪盘专项。）',priority:90,condition:(s,h,r,log)=>log.some(e=>e.reply==='LOVE')},
+      {id:'SCAM_E16',title:'退订后又活跃',icon:'🔄',text:'该号码存在UNSUBSCRIBE记录。\n但后续仍有RECEIVED响应。\n（矛盾样本，研究价值加一。）',priority:80,condition:(s,h,r,log)=>log.some(e=>e.reply==='UNSUBSCRIBE')&&r>=30},
+      {id:'SCAM_E17',title:'低成本猎物',icon:'💹',text:'该号码处理消息少于十。\n回复率却超八成。\n（投入产出比优秀。）',priority:80,condition:(s,h,r)=>h<=10&&r>=h*0.8},
+      {id:'SCAM_E18',title:'数据已清仓',icon:'🗑️',text:'该号码数据已全部转卖。\n下游买家覆盖十余家。\n（生命周期结束。）',priority:95,condition:(s)=>s.DATA_SOLD>=10},
+      {id:'SCAM_E19',title:'边缘样本',icon:'⚠️',text:'该号码同时满足多项条件。\n关注度高、转卖多、响应杂。\n（建议：优先竞价。）',priority:90,condition:(s)=>s.SCAM_ATTENTION>=60&&s.DATA_SOLD>=3},
+      {id:'SCAM_E20',title:'常规归档',icon:'📁',text:'该号码未触发任何特殊标记。\n归入普通名单待用。\n（每日新名单容量充足。）',priority:1,condition:()=>true},
     ],
   },
   DATA_AUCTION: {
@@ -1124,6 +1208,21 @@ const STORYLINES = {
       {id:'DA_E03',title:'明星号码',text:'你的号码创下了本平台单日最高成交记录。\n七家公司，总计两块八毛六。\n（系统给你发了一封感谢信。）',icon:'💎',priority:90,condition:(s)=>s.BID_PRICE>=50&&s.BUYER_COUNT>=5},
       {id:'DA_E04',title:'流拍',text:'没有回应。\n系统标记这个号码为无效。\n（竞价撤回了。）',icon:'🌫️',priority:85,condition:(s,h,r)=>r===0},
       {id:'DA_E05',title:'待定',text:'竞价还在进行。\n你还在名单里。\n（四毛三，有人在想要不要再加一点。）',icon:'📋',priority:1,condition:()=>true},
+      {id:'DA_E06',title:'一分钱奇迹',icon:'🔢',text:'成交价：一分钱。\n赢家是本地一家典当行。\n（他们只收现汇。）',priority:80,condition:(s)=>s.BID_PRICE>=50&&s.BID_PRICE<100&&s.BUYER_COUNT>=2},
+      {id:'DA_E07',title:'沉默中标',icon:'📱',text:'号码被外地一个旅行团购下。\n全程无任何回复确认。\n（他们出发了。）',priority:85,condition:(s,h,r)=>s.BID_PRICE>=100&&r===0},
+      {id:'DA_E08',title:'午夜热线',icon:'🌙',text:'最高价买家是一个睡眠诊所。\n他们回复过一次，问是否需要预约。\n（还没等你回复。）',priority:80,condition:(s,h,r)=>s.BID_PRICE>=100&&r===1},
+      {id:'DA_E09',title:'独狼出价',icon:'🐺',text:'只有一个人出价，但他出了天价。\n买家信息显示为某县信访办。\n（他们已收缴了其他设备。）',priority:85,condition:(s)=>s.BID_PRICE>=200&&s.BUYER_COUNT===1},
+      {id:'DA_E10',title:'混战收场',icon:'⚔️',text:'七家竞拍，价高者得。\n最后赢家是一家安保公司。\n（他们给客户群发了一条。）',priority:80,condition:(s,h,r)=>s.BUYER_COUNT>=7&&r<=3},
+      {id:'DA_E11',title:'破纪录',icon:'💰',text:'成交价突破系统上限。\n买家是某区块链项目方。\n（代币已上线。）',priority:90,condition:(s)=>s.BID_PRICE>=500&&s.BUYER_COUNT>=3},
+      {id:'DA_E12',title:'边缘成交',icon:'⚖️',text:'刚好超过五十元的成交价。\n赢家是一个自称公益基金的账户。\n（他们只筹集过一次。）',priority:80,condition:(s)=>s.BID_PRICE>=50&&s.BID_PRICE<60},
+      {id:'DA_E13',title:'深夜竞价',icon:'🕐',text:'成交发生在凌晨三点十七分。\n买家IP显示在境外。\n（但身份证是国内的。）',priority:85,condition:(s,h)=>s.BID_PRICE>=150&&h>=10},
+      {id:'DA_E14',title:'零回复赢家',icon:'🤫',text:'号码被一家征信公司拍走。\n竞拍过程激烈，但从未回复。\n（他们的系统全自动化。）',priority:88,condition:(s,h,r)=>s.BID_PRICE>=100&&r===0&&s.BUYER_COUNT>=3},
+      {id:'DA_E15',title:'高频回复',icon:'💬',text:'得标者与你有十二次对话记录。\n是一家私人侦探事务所。\n（已完成初步背景调查。）',priority:85,condition:(s,h,r)=>s.BID_PRICE>=80&&r>=10},
+      {id:'DA_E17',title:'新用户中标',icon:'🆕',text:'注册时间仅一天的账户赢得了竞拍。\n他们回复说只是想试试手气。\n（但账户已注销。）',priority:80,condition:(s,h,r)=>s.BID_PRICE>=60&&r>=1&&s.BUYER_COUNT>=2},
+      {id:'DA_E18',title:'历史最高',icon:'📈',text:'这是本平台本周最高成交价。\n买家是一家上市公司信息披露部门。\n（用于投资者热线。）',priority:90,condition:(s)=>s.BID_PRICE>=300&&s.BUYER_COUNT>=4},
+      {id:'DA_E19',title:'流拍记录',icon:'📋',text:'本轮竞价有记录，但最终流拍。\n所有出价者都未完成付款。\n（系统已自动发送催促。）',priority:75,condition:(s,h,r,log,et)=>et==='silent'&&s.BUYER_COUNT>=2},
+      {id:'DA_E20',title:'未完成交易',icon:'📦',text:'买家竞拍成功后失联。\n号码在后台显示为"待激活"状态。\n（三个月后自动释放。）',priority:2,condition:(s,h,r)=>s.BID_PRICE>=50&&r>=1},
+      {id:'DA_E21',title:'三方僵局',icon:'🔺',text:'三家公司同时出价，互相观望。\n最后赢家是第一个放弃等待的。\n（另外两家还在刷新页面。）',priority:80,condition:(s)=>s.BUYER_COUNT>=2&&s.BUYER_COUNT<=4},
     ],
   },
   SPACETIME_RADIO: {
@@ -1196,6 +1295,24 @@ const STORYLINES = {
       {id:'SR_E03',title:'有人在听',text:'信号维持住了。\nAsya 继续发送了很久。\n她不知道有人在听。\n（致敬《Z.A.T.O.》——一款关于消失与爱的游戏。去玩吧。）',icon:'📶',priority:95,condition:(s,h,r,log,et)=>et==='signal_success'},
       {id:'SR_E04',title:'守在频率上',text:'你回了二十条以上。\n这个频率被你撑了一分钟。\n（没有人相信这件事发生过。）\n（致敬《Z.A.T.O.》——一款关于消失与爱的游戏。去玩吧。）',icon:'🎙️',priority:85,condition:(s,h)=>h>=20},
       {id:'SR_E05',title:'杂音',text:'这一分钟过去了。\nAsya 还在塔上。1986年的 Vorkuta-5 还在继续消失。\n（致敬《Z.A.T.O.》——一款关于消失与爱的游戏。去玩吧。）',icon:'〰️',priority:1,condition:()=>true},
+      {id:'SR_E06',title:'广播回声',icon:'📢',text:'信号维持的那四十秒，市政塔的广播有了回声。\nAsya不知道那是什么。\n（她又发了三次信号，然后下了塔。）',priority:82,condition:(s,h)=>h>=15&&h<20},
+      {id:'SR_E07',title:'日记里的可能',icon:'📓',text:'你没有回复。\n那个频率在晚上十点自动关闭了。\nAsya在日记里写：今天可能有人在听。可能。',priority:80,condition:(s,h,r)=>r===0&&h>0},
+      {id:'SR_E08',title:'电离异常',icon:'🌐',text:'你回复了二十次。\n那天Vorkuta-5的大气层有一分钟的电离异常。\n（气象局把这个记录标记为「仪器误差」。）',priority:88,condition:(s,h,r)=>r>=20},
+      {id:'SR_E09',title:'同一个频率',icon:'📻',text:'Ira曾经说她听见了什么。\n你听见的，和她听见的，可能是同一个频率。\n（她在三周前消失了。你现在在这里。）',priority:85,condition:(s)=>s.CONNECTION>=15},
+      {id:'SR_E10',title:'街灯',icon:'💡',text:'你按了收到的那一秒，Vorkuta-5有一盏街灯亮了一下。\n然后灭了。\n（没有人注意到。）',priority:80,condition:(s,h,r)=>r>=1&&r<5},
+      {id:'SR_E11',title:'档案空白',icon:'📄',text:'信号断的时候，Ira的档案又更新了一次。\n更新内容是空白。\n（空白在这里是一种记录方式。）',priority:83,condition:(s)=>s.SIGNAL_STRENGTH<=0&&s.CONNECTION<10},
+      {id:'SR_E12',title:'三周以前',icon:'🕰️',text:'Ira消失的那天，频率上有人回复了。\nAsya不知道。\n（那个人可能是你。时间在这个频率上不太稳定。）',priority:87,condition:(s)=>s.CONNECTION>=10&&s.SIGNAL_STRENGTH>0},
+      {id:'SR_E13',title:'市政塔',icon:'🗼',text:'Asya在塔上待了整整一分钟。\n信号发出去了。\n（她不知道有没有人在另一端。她还是发了。）',priority:80,condition:(s,h,r)=>r>=5&&r<15},
+      {id:'SR_E14',title:'停电',icon:'🔌',text:'你每次按收到，那边的灯就抖一下。\n最后停电了。\n（Asya继续发，在黑暗里。）',priority:86,condition:(s)=>s.SIGNAL_STRENGTH>0&&s.SIGNAL_STRENGTH<=30},
+      {id:'SR_E15',title:'图书馆的书',icon:'📚',text:'Ira消失之前借了三本书。\n没有还。\n（系统显示借阅记录，归还状态：待处理。）',priority:81,condition:(s,h,r)=>h>=10&&r<h*0.3},
+      {id:'SR_E16',title:'云',icon:'☁️',text:'Ira最后被看见的时候，在看窗外的云。\n你现在也在看着什么。\n（这件事没有结论。）',priority:80,condition:(s,h,r)=>h>=5&&r>=h*0.3&&r<h*0.6},
+      {id:'SR_E17',title:'频率占用',icon:'📡',text:'你一直在这个频率上。\n这一分钟，没有别的信号能进来。\n（Asya不知道这意味着什么。你也不知道。）',priority:84,condition:(s,h,r)=>r>=h*0.6&&h>=10},
+      {id:'SR_E18',title:'仪器读数',icon:'🔬',text:'信号强度在最后十秒回升了一点。\n没有人知道原因。\n（仪器记录了这件事。记录存在一个没人看的文件夹里。）',priority:83,condition:(s)=>s.SIGNAL_STRENGTH>0&&s.SIGNAL_STRENGTH<=50},
+      {id:'SR_E19',title:'没有标记',icon:'🗺️',text:'Vorkuta-5在任何地图上都找不到。\n这一分钟也不会被记录在任何地方。\n（但它发生过。）',priority:82,condition:(s,h)=>h>=10&&h<15},
+      {id:'SR_E20',title:'宇宙收件箱',icon:'🌌',text:'Asya说她在给宇宙发信号。\n宇宙没有回复。\n（你回了。）',priority:89,condition:(s)=>s.CONNECTION>=20},
+      {id:'SR_E21',title:'code-allergy',icon:'🧬',text:'Vorkuta-5有一种叫code-allergy的东西。\n患者开始看见事物的底层结构。\n（你刚才盯着这些消息看了一分钟。）',priority:80,condition:(s,h,r)=>h>=25&&r<10},
+      {id:'SR_E22',title:'存在过',icon:'🕯️',text:'Asya想告诉某个人：她存在过。\n你在这里。\n（这已经够了。）',priority:90,condition:(s)=>s.CONNECTION>=10&&s.SIGNAL_STRENGTH>30},
+      {id:'SR_E23',title:'下一次',icon:'📶',text:'信号关闭了。\nAsya记下了今天的频率参数。\n（她明天还会来。）',priority:1,condition:()=>true},
     ],
   },
 };
@@ -1271,6 +1388,7 @@ function startGame(storylineId) {
 }
 
 function showIntroScreen(sl) {
+  playBgm('bgm-start');
   const screen = document.getElementById('start-screen');
   screen.querySelector('.start-battery').textContent = sl.ui?.introIcon || '🪫';
   screen.querySelector('.start-title').textContent = sl.name;
@@ -1281,6 +1399,27 @@ function showIntroScreen(sl) {
   btn.textContent = '开始一分钟';
   btn.onclick = () => startGameCore();
   screen.style.display = 'flex';
+}
+
+// ── 音量配置（统一在此调整）──
+const BGM_VOL = 0.4;   // 主线/故事线 BGM 音量，范围 0~1
+const BGM_INTRUSION_VOL = 0.5;  // 乱入 BGM 音量（稍突出）
+
+const ALL_BGM_IDS = ['bgm-main','bgm-start','bgm-soviet','bgm-spacetime','bgm-android'];
+
+function playBgm(id, vol) {
+  ALL_BGM_IDS.forEach(bid => {
+    const el = document.getElementById(bid);
+    if (el) { el.pause(); el.currentTime = 0; }
+  });
+  const el = document.getElementById(id);
+  if (el) { el.volume = vol !== undefined ? vol : BGM_VOL; el.play().catch(()=>{}); }
+}
+function stopBgm() {
+  ALL_BGM_IDS.forEach(bid => {
+    const el = document.getElementById(bid);
+    if (el) { el.pause(); el.currentTime = 0; }
+  });
 }
 
 function startGameCore() {
@@ -1323,12 +1462,15 @@ function startGameCore() {
 
   clearInterval(tik);
   tik = setInterval(tick, 1000);
+  playBgm(currentStoryline.id === 'SPACETIME_RADIO' ? 'bgm-spacetime' : 'bgm-main');
   nextMsg();
 }
 
 function rebuildStatChips(cfg) {
   const bar = document.getElementById('stats-bar');
   bar.innerHTML = '';
+  if (Object.keys(cfg).length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
   Object.entries(cfg).forEach(([k, c]) => {
     const chip = document.createElement('span');
     chip.className = 'stat-chip';
@@ -1403,7 +1545,10 @@ function startIntrusion() {
   intrusionCardIndex = 0;
   const gameEl = document.getElementById('game');
   gameEl.classList.add('intrusion-active');
-  gameEl.classList.add(intrusionConfig.id === 'ANDROID_INTRUSION' ? 'intrusion-android' : 'intrusion-radio');
+  const isAndroid = intrusionConfig.id === 'ANDROID_INTRUSION';
+  gameEl.classList.add(isAndroid ? 'intrusion-android' : 'intrusion-radio');
+  // 切换乱入专属 BGM（android 暂无文件，静默失败）
+  playBgm(isAndroid ? 'bgm-android' : 'bgm-soviet', BGM_INTRUSION_VOL);
   showIntrusionCard(0);
 }
 
@@ -1422,6 +1567,9 @@ function endIntrusion() {
   intrusionActive = false;
   const gameEl = document.getElementById('game');
   gameEl.classList.remove('intrusion-active', 'intrusion-radio', 'intrusion-android');
+  // 切回当前故事线 BGM
+  const bgmId = currentStoryline.id === 'SPACETIME_RADIO' ? 'bgm-spacetime' : 'bgm-main';
+  playBgm(bgmId);
   cur = null;
   canClick = false;
   setTimeout(nextMsg, 300);
@@ -1626,6 +1774,7 @@ function resolveWorldlineNext() {
 
 /* ===== END SCREEN: 结算与恭喜弹窗 ===== */
 function endGame() {
+  stopBgm();
   canClick = false;
   document.getElementById('msg-area').innerHTML = '';
   document.getElementById('skip-btn').style.display = 'none';
@@ -1753,6 +1902,62 @@ function restart() {
   btn.textContent = '开始一分钟';
   btn.onclick = () => startGame('MAIN');
   startGame('MAIN');
+}
+
+function showImportModal() {
+  document.getElementById('import-modal').style.display = 'block';
+  document.getElementById('import-error').textContent = '';
+}
+function hideImportModal() {
+  document.getElementById('import-modal').style.display = 'none';
+}
+function parseCustomMessages(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 3) return { error: '至少需要3条消息' };
+  const cards = lines.slice(0, 30).map(line => {
+    const sepFull = line.indexOf('：');
+    const sepHalf = line.indexOf(':');
+    const idx = sepFull !== -1 ? sepFull : (sepHalf !== -1 ? sepHalf : -1);
+    if (idx > 0 && idx < line.length - 1) {
+      return { senderName: line.slice(0, idx).trim(), body: line.slice(idx + 1).trim() };
+    }
+    return { senderName: '未知', body: line };
+  });
+  return { cards, truncated: text.split('\n').filter(l => l.trim()).length > 30 };
+}
+function createCustomStoryline(cards) {
+  return {
+    id: '__CUSTOM__',
+    name: '我的消息',
+    intro: '一分钟。\n你的手机里有这些消息。\n（它们都在等你。）',
+    statCfg: {},
+    defaults: {},
+    rules: [],
+    raw: cards.map(c => ({ t: 'CUSTOM', n: c.senderName, b: c.body, correct: 'RECEIVED', e: {} })),
+    tmpl: {},
+    genCount: 0,
+    ui: {
+      batteryText: '消息',
+      buttons: { WAIT: '等等', RECEIVED: '已读', UNSUBSCRIBE: '不回', LOVE: '在的' },
+    },
+    endings: [
+      { id: 'CUSTOM_E01', title: '看完了', icon: '📱', text: '这一分钟过去了。\n那些消息还在。\n（有几条你其实没想好怎么回。）', priority: 1, condition: () => true },
+    ],
+  };
+}
+function startCustomGame() {
+  const text = document.getElementById('import-textarea').value;
+  const result = parseCustomMessages(text);
+  if (result.error) {
+    document.getElementById('import-error').textContent = result.error;
+    return;
+  }
+  if (result.truncated) {
+    document.getElementById('import-error').textContent = '超过30条，已截取前30条。';
+  }
+  STORYLINES['__CUSTOM__'] = createCustomStoryline(result.cards);
+  hideImportModal();
+  startGame('__CUSTOM__');
 }
 
 function restoreMainStartScreen() {

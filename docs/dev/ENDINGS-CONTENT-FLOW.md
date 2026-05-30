@@ -1,7 +1,7 @@
 # ENDINGS-CONTENT-FLOW — 结局文案批量录入流程
 
 > 适用于100个结局的低成本配置方案。
-> 文案和逻辑分离：文案用 Excel 本地填写，逻辑由程序配。
+> 文案用 AI 生成，程序审查后直接粘进 index.html，无需 CSV 或转换脚本。
 
 ---
 
@@ -9,116 +9,128 @@
 
 | 角色 | 工具 | 任务 |
 |------|------|------|
-| 文案 | Excel（本地 .xlsx） | 按格式填结局文案，保存文件 |
-| 程序 | Claude Code | 读 .xlsx → 生成 endings[] 对象，挂进对应故事线 |
+| 文案 | Claude Code（VSCode） | 用 AI Prompt 批量生成结局 JS 数组，粘贴进本文件待审区 |
+| 程序 | Claude Code | 审查待审区内容，通过后粘进 index.html 对应故事线 endings[] |
 | PM | 当前窗口 | 审查计划，不介入实现 |
 
 ---
 
-## 文案表格格式（Excel）
+## 结局对象格式
 
-文件名：`endings-draft.xlsx`，放在项目根目录。
-Sheet 名：`endings`（只用这一个 sheet）。
-第一行为列名，从第二行开始填内容。
+每个结局是一个 JS 对象，挂在对应故事线的 `endings: []` 数组里：
 
-| 列名 | 必填 | 说明 | 示例 |
-|------|------|------|------|
-| `id` | 是 | 全局唯一，格式 `故事线缩写_E序号` | `MAIN_E11` |
-| `storyline` | 是 | 挂进哪个故事线 | `MAIN` |
-| `title` | 是 | 结局标题，4-8字 | `余额归零` |
-| `icon` | 是 | 单个 emoji | `💸` |
-| `text` | 是 | 3行正文，行间用 `\n` 写字面量，每行不超过20字 | `本月意外支出超过两百元。\n大部分你不知道买了什么。\n（充了个会员，平台已跑路。）` |
-| `priority` | 是 | 数字，越高越优先；组合结局90，单项80，兜底1 | `80` |
-| `condition_desc` | 是 | 中文描述触发条件，程序据此写代码 | `INFO_LEAK>=3 且 SPAM_SUBSCRIBED>=5` |
-| `note` | 否 | 备注，不进游戏 | `和E03组合版` |
+```js
+{
+  id: 'MAIN_E11',           // 全局唯一，格式：故事线缩写_E序号
+  title: '余额归零',         // 结局标题，4-8字
+  icon: '💸',               // 单个 emoji
+  text: '本月意外支出超过两百元。\n大部分你不知道买了什么。\n（充了个会员，平台已跑路。）',
+                            // 3行正文，\n 分隔，每行不超过20字
+  priority: 80,             // 组合结局90，单项80，兜底1
+  condition: (s) => s.UNEXPECTED_CHARGE >= 200,
+                            // 触发条件函数，签名见下方
+}
+```
 
-> `text` 字段在 Excel 单元格内直接输入 `\n` 两个字符（不是真正换行），程序读取后会转换为 JS 字符串换行。
+**condition 函数签名：** `(stats, handled, replied, replyLog, escapeType) => boolean`
+
+| 参数 | 说明 |
+|------|------|
+| `s` / `stats` | 数值对象，如 `s.DELIVERY_LOST`、`s.BOSS_PATIENCE` |
+| `h` / `handled` | 本局处理消息总数 |
+| `r` / `replied` | 本局回复总数 |
+| `replyLog` | 回复记录数组 `[{senderType, reply, correct}]` |
+| `escapeType` | 脱离类型字符串，如 `'silent'`、`'defiant'`，未脱离为 null |
+
+**condition 常用写法：**
+
+| 触发条件描述 | 代码 |
+|-------------|------|
+| 单项数值越界 | `(s)=>s.DELIVERY_LOST>=3` |
+| 多项组合 | `(s)=>s.INFO_LEAK>=3&&s.SPAM_SUBSCRIBED>=5` |
+| 回复数量 | `(s,h)=>h>=30` |
+| 脱离类型 | `(s,h,r,_,et)=>et==='silent'` |
+| 兜底（总是触发） | `()=>true` |
 
 ---
 
 ## 文案操作流程
 
-1. 用 Excel 打开（或新建）`endings-draft.xlsx`
-2. Sheet 改名为 `endings`，第一行填列名
-3. 按格式逐行填写结局，`text` 字段用 `\n` 分隔三行正文
-4. 保存文件（Ctrl+S），**不需要导出 CSV**
-5. 通知程序：`endings-draft.xlsx 已就绪，请导入`
+1. 打开 MiniMax 网页对话，粘贴本文末尾的「AI Prompt」
+2. 填入故事线ID、数量、可用 statKey（见下方补充结局计划）
+3. 把输出的 JS 数组粘贴进本文件「待审区」
+4. 通知程序：`ENDINGS-CONTENT-FLOW 待审区有新内容，故事线：XXX`
 
 ---
 
 ## 程序操作流程（程序看这里）
 
-### 一次性准备：安装依赖 + 写转换脚本
-
-```bash
-# 在项目根目录执行，只需一次
-npm install xlsx --save-dev
-```
-
-在项目根目录创建 `tools/xlsx-to-endings.js`：
-
-```js
-// 用法：node tools/xlsx-to-endings.js endings-draft.xlsx
-const XLSX = require('xlsx');
-
-const file = process.argv[2] || 'endings-draft.xlsx';
-const wb = XLSX.readFile(file);
-const ws = wb.Sheets['endings'];
-if (!ws) { console.error('找不到 sheet: endings'); process.exit(1); }
-
-const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-const byStoryline = {};
-
-rows.forEach(row => {
-  if (!row.id || !row.storyline) return;
-  const entry = `      {id:'${row.id}',title:'${row.title}',text:'${row.text}',icon:'${row.icon}',priority:${row.priority},condition:/* ${row.condition_desc} */ null},`;
-  if (!byStoryline[row.storyline]) byStoryline[row.storyline] = [];
-  byStoryline[row.storyline].push(entry);
-});
-
-for (const [sl, entries] of Object.entries(byStoryline)) {
-  console.log(`\n// ── ${sl} endings ──`);
-  console.log('    endings: [');
-  entries.forEach(e => console.log(e));
-  console.log('    ],');
-}
-```
-
-### 每次录入步骤
-
-1. `node tools/xlsx-to-endings.js endings-draft.xlsx > endings-output.txt`
-2. 打开 `endings-output.txt`，逐条把 `condition: null` 替换为实际 JS 函数（依据 `condition_desc`）
-3. 将整个 `endings: [...]` 块粘贴进 `index.html` 对应故事线
-4. 浏览器验证：触发各结局，确认文案和触发条件匹配
-5. 回复 PM：「已导入 N 条结局，来源：endings-draft.xlsx」
-
-### condition 写法参考
-
-| condition_desc 示例 | 对应代码 |
-|---------------------|---------|
-| `DELIVERY_LOST>=3` | `(s)=>s.DELIVERY_LOST>=3` |
-| `BOSS_PATIENCE<=0` | `(s)=>s.BOSS_PATIENCE<=0` |
-| `handled>=30` | `(s,h)=>h>=30` |
-| `escapeType==='silent'` | `(s,h,r,_,et)=>et==='silent'` |
-| `INFO_LEAK>=3 且 SPAM_SUBSCRIBED>=5` | `(s)=>s.INFO_LEAK>=3&&s.SPAM_SUBSCRIBED>=5` |
-| 兜底（总是触发） | `()=>true` |
-
-函数签名：`(stats, handled, replied, replyLog, escapeType) => boolean`
+1. 读本文件「待审区」
+2. 逐条检查：
+   - `id` 格式正确且全局不重复
+   - `text` 三行，每行不超过20字
+   - `priority` 符合规则（组合90/单项80/兜底1）
+   - `condition` 函数引用的 statKey 在该故事线的 `statCfg` 中存在
+3. 通过后将对象数组粘进 `index.html` 对应故事线的 `endings: []`
+4. 清空待审区，回复 PM：「已导入 N 条结局，故事线：XXX」
 
 ---
 
 ## 待审区
 
-<!-- 程序导入完成后在此确认：已导入 N 条，来源：endings-draft.xlsx -->
+<!-- 文案把 AI 输出粘贴在此处 -->
+
+---
+
+## AI Prompt
+
+复制以下内容，直接粘贴给 MiniMax：
+
+---
+
+你是一个手机消息模拟游戏的结局生成器。根据以下格式生成结局 JS 对象数组。
+
+**格式（严格遵守）：**
+```
+{ id: '故事线_E序号', title: '标题', icon: 'emoji', text: '第一行。\n第二行。\n（第三行括号补充。）', priority: 数字, condition: (s,h,r,log,et) => 布尔表达式 }
+```
+
+**字段规则：**
+- `id`：全局唯一，格式 `故事线缩写_E序号`，如 `MAIN_E11`
+- `title`：4-8字，点出结局核心
+- `icon`：单个 emoji，契合结局氛围
+- `text`：固定3行。第1行陈述事实，第2行补充后果，第3行括号内说一句细节或反讽。每行不超过20字，用 `\n` 分隔
+- `priority`：组合触发条件填90，单项触发填80，兜底（总是触发）填1
+- `condition`：JS 箭头函数，参数 `(s,h,r,log,et)`，其中 `s` 是数值对象，`h` 是处理消息数，`r` 是回复数，`et` 是 escapeType
+
+**文案风格：**
+- 口吻冷静，不煽情，陈述事实
+- 第3行括号句带轻微荒诞或反讽感
+- 参考现有结局风格：「骑手在大堂等了十分钟。\n后来选择退单了。\n（被扣了好评。）」
+
+**只输出 JS 数组，不要解释，不要 markdown 代码块标记。**
+
+请为故事线 [故事线ID]，生成 [数量] 条结局。可用数值键：[列出该故事线的 statCfg 键名]。
 
 ---
 
 ## 当前已配置结局数
 
-| 故事线 | 数量 | 状态 |
-|--------|------|------|
-| MAIN | 10 | ✅ 已配置 |
-| SCAM_TARGET | 4 | ✅ 已配置 |
-| DATA_AUCTION | 4 | ✅ 已配置 |
-| SPACETIME_RADIO | 5 | ✅ 已配置 |
-| 其余故事线 | — | ⏳ 待填写 |
+| 故事线 | 已有 | 目标 | 缺口 | 状态 |
+|--------|------|------|------|------|
+| MAIN | 10 | 40 | 30 | ⏳ MiniMax 生成中 |
+| SCAM_TARGET | 3 | 20 | 17 | ⏳ MiniMax 生成中 |
+| DATA_AUCTION | 5 | 20 | 15 | ⏳ MiniMax 生成中 |
+| SPACETIME_RADIO | 7 | 25 | 18 | ⏳ MiniMax 生成中 |
+| **合计** | **25** | **105** | **80** | — |
+
+---
+
+## 补充结局计划（MiniMax 参数速查）
+
+| 轮次 | 故事线 | 数量 | 起始序号 | statKey |
+|------|--------|------|---------|---------|
+| 1 | MAIN | 30 | MAIN_E11 | DELIVERY_LOST, BOSS_PATIENCE, INFO_LEAK, INTIMACY, SPAM_SUBSCRIBED, UNEXPECTED_CHARGE |
+| 2 | SCAM_TARGET | 17 | SCAM_E04 | SCAM_ATTENTION, DATA_SOLD；escapeType: silent/defiant/null |
+| 3 | DATA_AUCTION | 15 | DA_E06 | BID_PRICE, BUYER_COUNT |
+| 4 | SPACETIME_RADIO | 18 | SR_E06 | SIGNAL_STRENGTH, CONNECTION |
