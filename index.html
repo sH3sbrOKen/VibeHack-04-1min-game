@@ -1432,7 +1432,13 @@ function showIntroScreen(sl) {
   if (hintEl) hintEl.style.display = 'none';
   const btn = document.getElementById('start-btn');
   btn.textContent = '开始一分钟';
-  btn.onclick = () => startGameCore();
+  btn.onclick = () => {
+    const demoIntrusionKey = demoMode ? (demoSequence[demoIndex]?.intrusion || null) : null;
+    intrusionConfig = demoMode
+      ? (demoIntrusionKey ? (INTRUSIONS[demoIntrusionKey] || null) : null)
+      : (INTRUSIONS[currentStoryline.id] || null);
+    startGameCore();
+  };
   screen.style.display = 'flex';
 }
 
