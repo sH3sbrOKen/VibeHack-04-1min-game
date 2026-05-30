@@ -1,8 +1,78 @@
 # MINIMAX-CONTENT-FLOW — 外部模型内容生成分工
 
-> 适用场景：用 MiniMax 免费 token 批量生成信息卡文案，降低 Claude Code 用量。
+> 适用场景：用 MiniMax 免费 token 批量生成信息卡文案和音频，降低 Claude Code 用量。
 >
 > 结局文案录入见 [ENDINGS-CONTENT-FLOW.md](./ENDINGS-CONTENT-FLOW.md)（CSV 批量导入流程）。
+
+---
+
+## 音频需求（BGM + SFX）
+
+> 当前已有一版音频（MP3），路演前可能需要重新生成。程序不介入音频内容，由文案/制作人负责。
+
+### 文件清单与要求
+
+| 文件名 | 类型 | 循环 | 说明 |
+|--------|------|------|------|
+| `bgm-main.mp3` | BGM | 是 | 现代都市日常，轻微焦虑，手机消息不断涌入的紧迫感，电子+钢琴，偏暗，BPM约100 |
+| `bgm-start.mp3` | BGM | 是 | 开场等待界面，静谧略带悬念，比bgm-main更克制，深夜盯着手机屏幕的感觉 |
+| `bgm-soviet.mp3` | BGM | 是 | 1986年苏联地下电台，模拟信号噪声+神秘弦乐，冷战感，绿色荧光屏既视感 |
+| `bgm-spacetime.mp3` | BGM | 是 | 跨越时空的无线电频率，失真信号+空灵合成器，疏离感，像在宇宙中等待回应 |
+| `bgm-android.mp3` | BGM | 是 | 机械入侵感，低频威胁性电子音，红色警报氛围，节奏不规律带抖动，令人不安 |
+| `sfx-msg.mp3` | SFX | 否 | 手机收到新消息提示音，清脆简短，类微信消息音但更有设计感，1秒内 |
+| `sfx-correct.mp3` | SFX | 否 | 正确回复反馈，轻快积极，像完成一个小任务，1秒内 |
+| `sfx-wrong.mp3` | SFX | 否 | 错误回复反馈，低沉短促，轻微失落感，不刺耳，1秒内 |
+| `sfx-intrusion-radio.mp3` | SFX | 否 | 苏联电台突然闯入，模拟信号接通声，嗡嗡电流+短暂静电噪声，约1.5秒 |
+| `sfx-intrusion-android.mp3` | SFX | 否 | 伪人AI突然入侵，机械警报感，低频脉冲+金属质感，约1.5秒，令人警觉 |
+
+### 音量参考（程序侧常量，供音频制作参考响度）
+
+- BGM 主线/超时空：`BGM_VOL = 0.4`（中低音量）
+- BGM 乱入（苏联/伪人）：`BGM_INTRUSION_VOL = 0.5`（略突出）
+- SFX：`SFX_VOL = 0.6`（清晰可闻）
+
+### 文件交付
+
+生成完成后直接放入 `music/` 文件夹，替换同名文件，通知程序确认路径无误后 commit。
+
+### MiniMax 提示词（重新生成全套）
+
+```
+请生成以下10个音频文件，全部输出为 MP3 格式，文件命名如括号所示：
+
+BGM（循环背景音乐，各30秒以上，结尾可无缝衔接循环）：
+1. bgm-main.mp3 — 现代都市日常氛围，轻微焦虑感，手机消息不断涌入的紧迫节奏，电子+钢琴，偏暗，BPM约100
+2. bgm-start.mp3 — 开场等待界面，静谧略带悬念，比bgm-main更克制，像深夜盯着手机屏幕
+3. bgm-soviet.mp3 — 1986年苏联地下电台氛围，模拟信号噪声+神秘弦乐，冷战感，绿色荧光屏既视感，循环
+4. bgm-spacetime.mp3 — 跨越时空的无线电频率，失真信号+空灵合成器，疏离感，像在宇宙中等待回应
+5. bgm-android.mp3 — 机械入侵感，低频威胁性电子音，红色警报氛围，节奏不规律带抖动，令人不安
+
+SFX（音效，短促）：
+6. sfx-msg.mp3 — 手机收到新消息的提示音，清脆简短，类微信消息音但更有设计感，1秒内
+7. sfx-correct.mp3 — 正确回复的反馈音，轻快积极，像完成一个小任务，1秒内
+8. sfx-wrong.mp3 — 错误回复的反馈音，低沉短促，轻微失落感，不刺耳，1秒内
+9. sfx-intrusion-radio.mp3 — 苏联电台突然闯入的音效，模拟信号接通声，嗡嗡电流+短暂静电噪声，约1.5秒
+10. sfx-intrusion-android.mp3 — 伪人AI突然入侵的音效，机械警报感，低频脉冲+金属质感，约1.5秒，令人警觉
+
+全部输出 MP3 格式。
+```
+
+### MiniMax 提示词（仅转换格式，保持内容不变）
+
+```
+我有10个WAV音频文件，请帮我全部转换为MP3格式，保持音质不变，文件名不变只改后缀：
+
+bgm-main.wav → bgm-main.mp3
+bgm-start.wav → bgm-start.mp3
+bgm-soviet.wav → bgm-soviet.mp3
+bgm-spacetime.wav → bgm-spacetime.mp3
+bgm-android.wav → bgm-android.mp3
+sfx-msg.wav → sfx-msg.mp3
+sfx-correct.wav → sfx-correct.mp3
+sfx-wrong.wav → sfx-wrong.mp3
+sfx-intrusion-radio.wav → sfx-intrusion-radio.mp3
+sfx-intrusion-android.wav → sfx-intrusion-android.mp3
+```
 
 ---
 
