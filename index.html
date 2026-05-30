@@ -1412,6 +1412,8 @@ function startGame(storylineId) {
   intrusionActive = false;
   intrusionTriggered = false;
   intrusionCardIndex = 0;
+  intrusionQueue = [];
+  document.getElementById('game').classList.remove('intrusion-active', 'intrusion-radio', 'intrusion-android');
 
   if (currentStoryline.intro) {
     showIntroScreen(currentStoryline);
