@@ -112,6 +112,20 @@ body {
 
 #start-btn:active { opacity: 0.75; }
 
+#demo-btn {
+  margin-top: 12px;
+  padding: 11px 32px;
+  background: none;
+  color: #8E8E93;
+  border: 1px solid #C7C7CC;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+#demo-btn:active { opacity: 0.6; }
+
 /* ── TOP BAR — iOS nav bar ── */
 #topbar {
   position: absolute;
@@ -196,6 +210,82 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ── INTRUSION: 异世界乱入视觉 ── */
+#game.intrusion-active {
+  background: #0a0a0f;
+  transition: background 0.4s;
+}
+
+#game.intrusion-active #topbar {
+  background: rgba(0,10,5,0.94);
+  border-bottom-color: rgba(0,255,157,0.2);
+}
+
+#game.intrusion-active #timer,
+#game.intrusion-active #msg-badge {
+  color: #00ff9d;
+}
+
+#game.intrusion-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,255,157,0.03) 3px, rgba(0,255,157,0.03) 4px);
+  pointer-events: none;
+  z-index: 25;
+  animation: scanlines 8s linear infinite;
+}
+
+@keyframes scanlines {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 100px; }
+}
+
+#game.intrusion-active #stats-bar {
+  background: rgba(0,10,5,0.9);
+}
+
+.intrusion-card {
+  background: #0d1117 !important;
+  border: 1px solid rgba(0,255,157,0.6) !important;
+  color: #00ff9d !important;
+  box-shadow: 0 0 20px rgba(0,255,157,0.15), 0 0 40px rgba(0,255,157,0.05) !important;
+  animation: cardIn 0.25s cubic-bezier(0.34,1.56,0.64,1), glitch 4s infinite !important;
+}
+
+.intrusion-card .msg-sender {
+  color: rgba(0,255,157,0.5) !important;
+  letter-spacing: 2px;
+}
+
+.intrusion-card .msg-body {
+  color: #00ff9d !important;
+  font-family: 'Courier New', monospace !important;
+  letter-spacing: 0.5px;
+}
+
+@keyframes glitch {
+  0%, 90%, 100% { filter: none; transform: none; }
+  91% { filter: hue-rotate(90deg) brightness(1.2); transform: translateX(2px); }
+  92% { filter: hue-rotate(-90deg); transform: translateX(-2px); }
+  93% { filter: none; transform: none; }
+  96% { filter: brightness(1.5); transform: translateY(1px); }
+  97% { filter: none; transform: none; }
+}
+
+#skip-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #8E8E93;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+#skip-btn:active { background: rgba(0,0,0,0.06); }
 
 /* ── STATS BAR ── */
 #stats-bar {
@@ -515,13 +605,8 @@ body {
       在找到充电器之前，先用它们把消息处理完。<br><br>
       <span class="start-sub-note">（应该够用的。）</span>
     </div>
-    <div class="start-hint">
-      <span class="hint-chip">等等 — 开门/取件</span>
-      <span class="hint-chip">收到 — 老板/通知</span>
-      <span class="hint-chip">退订 — 骚扰/诈骗</span>
-      <span class="hint-chip">好的亲 — 对象/家人</span>
-    </div>
     <button id="start-btn" onclick="startGame()">开始一分钟</button>
+    <button id="demo-btn" onclick="startDemoMode()">VibeHack04 路演模式</button>
   </div>
 
   <!-- Topbar -->
@@ -532,6 +617,7 @@ body {
     </div>
     <div id="msg-badge">99+</div>
     <div id="timer">1:00</div>
+    <button id="skip-btn" onclick="clearInterval(tik);endGame()">跳过</button>
   </div>
 
   <!-- Stats -->
@@ -600,6 +686,8 @@ const RULES = [
   { test:(b,t)=>t==='BOSS'&&/(辛苦了|没事)/.test(b),                         reply:'RECEIVED' },
   { test:(b,t)=>t==='FAMILY'&&/(转给你|够不够用)/.test(b),                   reply:'RECEIVED' },
 ];
+
+let activeStatCfg = null, activeDefaults = null, activeRules = null;
 
 function correctReply(senderType, body) {
   const rules = activeRules || RULES;
@@ -682,6 +770,27 @@ const RAW = [
   {t:'FRIEND',n:'同学',b:'好久没见了约一下',e:{INTIMACY:-5},d:1},
   {t:'FRIEND',n:'朋友',b:'有个活动群你要不要进',e:{INTIMACY:-5},d:1},
   {t:'FRIEND',n:'同学',b:'给你推了张名片你加一下',e:{INTIMACY:-5},d:1},
+  // BOSS批次 - MiniMax生成，已审校
+  {t:'BOSS',n:'王总',b:'下午三点有个客户来访，你提前把会议室准备好',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:1},
+  {t:'BOSS',n:'李总',b:'这份报表有问题，你重新核对一遍数据',c:'RECEIVED',e:{BOSS_PATIENCE:-25},d:2},
+  {t:'BOSS',n:'张总',b:'明天上午十点出差，记得带好合同文件',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:1},
+  {t:'BOSS',n:'刘总',b:'客户投诉了，你先别回复等我指示',c:'WAIT',e:{BOSS_PATIENCE:-25},d:2},
+  {t:'BOSS',n:'陈总',b:'这个方案不行，你按我说的改一下',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:3,trap:true,tr:'玩家直觉按WAIT等待更多指示，但老板要求先确认收到修改指令'},
+  {t:'BOSS',n:'赵总',b:'紧急！这个月业绩必须达标，大家加油',c:'RECEIVED',e:{BOSS_PATIENCE:-25},d:1},
+  {t:'BOSS',n:'孙总',b:'你上周的工作总结呢？还没交吗',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:2},
+  {t:'BOSS',n:'周总',b:'下午的发布会你来主持，准备一下稿子',c:'RECEIVED',e:{BOSS_PATIENCE:-30},d:3,trap:true,tr:'玩家直觉按WAIT表示还在准备，但老板要确认是否接受主持任务'},
+  {t:'BOSS',n:'吴总',b:'今晚加班，把项目进度追回来',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:1},
+  {t:'BOSS',n:'郑总',b:'这笔订单谈成了，大家辛苦一下赶工',c:'RECEIVED',e:{BOSS_PATIENCE:-25},d:1},
+  {t:'BOSS',n:'马总',b:'财务那边在催，你赶紧把发票寄过去',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:2},
+  {t:'BOSS',n:'冯总',b:'新员工入职培训，你来负责安排一下',c:'RECEIVED',e:{BOSS_PATIENCE:-25},d:3,trap:true,tr:'玩家直觉按WAIT想确认细节，但老板只需确认收到任务安排'},
+  {t:'BOSS',n:'蒋总',b:'周末团建取消，改到下个月再组织',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:1},
+  {t:'BOSS',n:'韩总',b:'明天的展会布置方案发我看看',c:'RECEIVED',e:{BOSS_PATIENCE:-25},d:2},
+  {t:'BOSS',n:'曹总',b:'供应商那边出问题了，你联系处理一下',c:'RECEIVED',e:{BOSS_PATIENCE:-25},d:3,trap:true,tr:'玩家直觉按WAIT等更多信息，但处理问题需要立即行动'},
+  {t:'BOSS',n:'许总',b:'老板临时要见你，五分钟后到我办公室',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:1},
+  {t:'BOSS',n:'何总',b:'这个月考勤有问题，你写个说明给我',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:2},
+  {t:'BOSS',n:'吕总',b:'产品出了bug，技术那边在加班，你先安抚下客户',c:'RECEIVED',e:{BOSS_PATIENCE:-30},d:3,trap:true,tr:'玩家直觉按WAIT等技术修复，但老板要的是立即回复客户'},
+  {t:'BOSS',n:'苏总',b:'客户要求降价，你评估一下利润空间',c:'RECEIVED',e:{BOSS_PATIENCE:-25},d:2},
+  {t:'BOSS',n:'卢总',b:'季度考核开始了，你把自评表填一下',c:'RECEIVED',e:{BOSS_PATIENCE:-20},d:1},
 ];
 
 // ── 方案A：模板生成卡 ──
@@ -789,6 +898,20 @@ const STAT_CFG = {
   INTIMACY:           { label:'亲密度',   unit:'', init:100, thresh:0,   dir:'min', story:'分手现场一分钟' },
   SPAM_SUBSCRIBED:    { label:'骚扰订阅', unit:'', init:0,   thresh:5,   dir:'max', story:'骚扰接线员一分钟' },
   UNEXPECTED_CHARGE:  { label:'意外扣费', unit:'¥',init:0,   thresh:200, dir:'max', story:'客服投诉一分钟' },
+};
+
+/* ===== INTRUSION: 异世界乱入配置 ===== */
+const INTRUSIONS = {
+  MAIN: {
+    card: { senderName: '——', body: '……你能听到吗。\n这里是1987年列宁格勒。\n信号很弱。\n如果你收到了，请回复我。' },
+    activateReply: 'RECEIVED',
+    worldlineTarget: 'SPACETIME_RADIO',
+  },
+  SCAM_TARGET: {
+    card: { senderName: '——', body: '……你能听到吗。\n这里是1987年列宁格勒。\n信号很弱。\n如果你收到了，请回复我。' },
+    activateReply: 'RECEIVED',
+    worldlineTarget: 'SPACETIME_RADIO',
+  },
 };
 
 /* ===== STORYLINE: 故事线配置 ===== */
@@ -975,8 +1098,13 @@ function saveUnlocked(){ localStorage.setItem('1min_unlocked',JSON.stringify(unl
 let stats, timeLeft, tik, cur, canClick, replied, revealedStats, handled;
 let pool1, pool2, pool3;
 let currentStoryline = null;
-let activeStatCfg = null, activeDefaults = null, activeRules = null;
 let escapeType = null;
+let intrusionActive = false;
+let intrusionTriggered = false;
+let intrusionConfig = null;
+let demoMode = false;
+let demoSequence = ['MAIN', 'SCAM_TARGET', 'DATA_AUCTION'];
+let demoIndex = 0;
 let replyLog = [];
 
 /* ===== GAME FLOW: 开始 → 消息 → 回复 → 结算 ===== */
@@ -989,6 +1117,9 @@ function startGame(storylineId) {
   activeRules = currentStoryline.rules || RULES;
   escapeType = null;
   replyLog = [];
+  intrusionConfig = INTRUSIONS[storylineId] || null;
+  intrusionActive = false;
+  intrusionTriggered = false;
 
   if (currentStoryline.intro) {
     showIntroScreen(currentStoryline);
@@ -1012,6 +1143,7 @@ function showIntroScreen(sl) {
 function startGameCore() {
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('end-screen').className = '';
+  document.getElementById('skip-btn').style.display = demoMode ? 'block' : 'none';
 
   stats = Object.fromEntries(Object.entries(activeStatCfg).map(([k,v])=>[k,v.init]));
   revealedStats = new Set();
@@ -1118,7 +1250,34 @@ function pickFromPool(pool) {
 function tick() {
   timeLeft--;
   updateTimer();
-  if (timeLeft <= 0) { clearInterval(tik); endGame(); }
+  if (timeLeft <= 0) { clearInterval(tik); endGame(); return; }
+  if (timeLeft === 15 && intrusionConfig && !intrusionTriggered) startIntrusion();
+  if (timeLeft === 5 && intrusionActive && !intrusionTriggered) endIntrusion(false);
+}
+
+function startIntrusion() {
+  intrusionActive = true;
+  document.getElementById('game').classList.add('intrusion-active');
+  canClick = true;
+  cur = { t: '__INTRUSION__', n: intrusionConfig.card.senderName, b: intrusionConfig.card.body, correct: intrusionConfig.activateReply, e: {} };
+  document.getElementById('msg-area').innerHTML =
+    `<div class="msg-card intrusion-card in">
+       <div class="msg-sender">${cur.n}</div>
+       <div class="msg-body">${cur.b.replace(/\n/g,'<br>')}</div>
+     </div>`;
+}
+
+function endIntrusion(triggered) {
+  intrusionActive = false;
+  document.getElementById('game').classList.remove('intrusion-active');
+  if (triggered) {
+    clearInterval(tik);
+    endGame();
+  } else {
+    cur = null;
+    canClick = false;
+    setTimeout(nextMsg, 300);
+  }
 }
 
 function updateTimer() {
@@ -1156,6 +1315,12 @@ function nextMsg() {
 function reply(r) {
   if (!canClick || !cur) return;
   canClick = false;
+
+  if (intrusionActive) {
+    if (r === intrusionConfig.activateReply) intrusionTriggered = true;
+    endIntrusion(intrusionTriggered);
+    return;
+  }
 
   const card = document.querySelector('.msg-card');
   if (card) card.classList.add('out');
@@ -1301,6 +1466,7 @@ function resolveWorldlineNext() {
 function endGame() {
   canClick = false;
   document.getElementById('msg-area').innerHTML = '';
+  document.getElementById('skip-btn').style.display = 'none';
 
   escapeType = resolveEscapeType(currentStoryline);
 
@@ -1345,12 +1511,20 @@ function endGame() {
     res.appendChild(row);
   });
 
-  const nextSl = resolveWorldlineNext();
-  if (nextSl && nextSl !== 'MAIN' && STORYLINES[nextSl]) {
+  if (intrusionTriggered && intrusionConfig) {
+    const target = intrusionConfig.worldlineTarget;
     const row = document.createElement('div');
     row.className = 'result-row unlocked';
-    row.innerHTML = `<div class="result-left"><div class="result-name red">${STORYLINES[nextSl].name}</div><div class="result-unlock">故事继续</div></div><button class="enter-storyline-btn" onclick="startGame('${nextSl}')">继续</button>`;
+    row.innerHTML = `<div class="result-left"><div class="result-name red">时空电波</div><div class="result-unlock">信号接通</div></div><button class="enter-storyline-btn" onclick="alert('时空电波世界线：待文案交付后实现')">继续</button>`;
     res.appendChild(row);
+  } else {
+    const nextSl = resolveWorldlineNext();
+    if (nextSl && nextSl !== 'MAIN' && STORYLINES[nextSl]) {
+      const row = document.createElement('div');
+      row.className = 'result-row unlocked';
+      row.innerHTML = `<div class="result-left"><div class="result-name red">${STORYLINES[nextSl].name}</div><div class="result-unlock">故事继续</div></div><button class="enter-storyline-btn" onclick="startGame('${nextSl}')">继续</button>`;
+      res.appendChild(row);
+    }
   }
 
   const progressEl = document.createElement('div');
@@ -1365,6 +1539,21 @@ function endGame() {
 
   document.getElementById('end-screen').className = 'show';
   document.querySelector('.end-title').textContent = currentStoryline.name;
+
+  const restartBtn = document.getElementById('restart-btn');
+  if (demoMode) {
+    const hasNext = demoIndex + 1 < demoSequence.length;
+    if (hasNext) {
+      restartBtn.textContent = '下一段';
+      restartBtn.onclick = () => { demoIndex++; startGame(demoSequence[demoIndex]); };
+    } else {
+      restartBtn.textContent = '演示结束';
+      restartBtn.onclick = () => { demoMode = false; demoIndex = 0; restoreMainStartScreen(); document.getElementById('end-screen').className = ''; document.getElementById('start-screen').style.display = 'flex'; };
+    }
+  } else {
+    restartBtn.textContent = '再来一局';
+    restartBtn.onclick = restart;
+  }
 }
 
 function showCongrats() {
@@ -1377,8 +1566,14 @@ function dismissCongrats() {
   endGame();
 }
 
+function startDemoMode() {
+  demoMode = true;
+  demoIndex = 0;
+  startGame(demoSequence[0]);
+}
+
 function restart() {
-  document.getElementById('start-screen').querySelector('.start-hint').style.display = 'flex';
+  demoMode = false;
   const btn = document.getElementById('start-btn');
   btn.textContent = '开始一分钟';
   btn.onclick = () => startGame('MAIN');
@@ -1389,7 +1584,6 @@ function restoreMainStartScreen() {
   const screen = document.getElementById('start-screen');
   screen.querySelector('.start-battery').textContent = '🪫';
   screen.querySelector('.start-title').textContent = '今天不想回消息';
-  screen.querySelector('.start-hint').style.display = 'flex';
   screen.querySelector('.start-sub').innerHTML =
     '昨晚有停电通知。你没看到。<br><br>醒来已经晚了，手机剩 <em>1%</em> 电。<br>老板在催，同事在问，快递等你开门禁，<br>你用 claw 自动订的早饭和咖啡刚到楼下，<br>还有几个你叫不出名字但号码眼熟的来电。<br><br>预存了四条回复。<br>在找到充电器之前，先用它们把消息处理完。<br><br><span class="start-sub-note">（应该够用的。）</span>';
   const btn = document.getElementById('start-btn');
