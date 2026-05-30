@@ -502,6 +502,9 @@ body {
 }
 .result-unlock::before { content: '▶'; font-size: 9px; }
 .result-val { font-size: 15px; font-weight: 600; color: #000; }
+.sentence-block { display: block; padding: 14px 16px; }
+.sentence-line { font-size: 13px; color: #3C3C43; line-height: 1.8; }
+.sentence-line.red { color: #FF3B30; }
 
 #share-card {
   width: 100%;
@@ -674,6 +677,11 @@ body {
   <audio id="bgm-soviet"    src="music/bgm-soviet.wav"    loop preload="auto"></audio>
   <audio id="bgm-spacetime" src="music/bgm-spacetime.wav" loop preload="auto"></audio>
   <audio id="bgm-android"   src="music/bgm-android.wav"   loop preload="auto"></audio>
+  <audio id="sfx-msg"               src="music/sfx-msg.wav"               preload="auto"></audio>
+  <audio id="sfx-correct"           src="music/sfx-correct.wav"           preload="auto"></audio>
+  <audio id="sfx-wrong"             src="music/sfx-wrong.wav"             preload="auto"></audio>
+  <audio id="sfx-intrusion-radio"   src="music/sfx-intrusion-radio.wav"   preload="auto"></audio>
+  <audio id="sfx-intrusion-android" src="music/sfx-intrusion-android.wav" preload="auto"></audio>
 
   <!-- Import Modal -->
   <div id="import-modal" style="display:none">
@@ -973,12 +981,12 @@ const MSGS = RAW.map(m => ({ ...m, correct: correctReply(m.t, m.b) }));
 
 /* ===== CONFIG: 六个隐藏数值 ===== */
 const STAT_CFG = {
-  DELIVERY_LOST:      { label:'外卖丢失', unit:'', init:0,   thresh:3,   dir:'max', story:'骑手一分钟' },
-  BOSS_PATIENCE:      { label:'老板耐心', unit:'', init:100, thresh:0,   dir:'min', story:'职场危机一分钟' },
-  INFO_LEAK:          { label:'信息泄露', unit:'', init:0,   thresh:3,   dir:'max', story:'电话销售一分钟' },
-  INTIMACY:           { label:'亲密度',   unit:'', init:100, thresh:0,   dir:'min', story:'分手现场一分钟' },
-  SPAM_SUBSCRIBED:    { label:'骚扰订阅', unit:'', init:0,   thresh:5,   dir:'max', story:'骚扰接线员一分钟' },
-  UNEXPECTED_CHARGE:  { label:'意外扣费', unit:'¥',init:0,   thresh:200, dir:'max', story:'客服投诉一分钟' },
+  DELIVERY_LOST:      { label:'外卖丢失', unit:'', init:0,   thresh:3,   dir:'max', story:'骑手一分钟',       sentence:'有{n}单外卖，骑手没等到你。' },
+  BOSS_PATIENCE:      { label:'老板耐心', unit:'', init:100, thresh:0,   dir:'min', story:'职场危机一分钟',   sentence:'老板的耐心扣掉了{n}点。' },
+  INFO_LEAK:          { label:'信息泄露', unit:'', init:0,   thresh:3,   dir:'max', story:'电话销售一分钟',   sentence:'你的号码泄露了{n}次。' },
+  INTIMACY:           { label:'亲密度',   unit:'', init:100, thresh:0,   dir:'min', story:'分手现场一分钟',   sentence:'亲密度掉了{n}。（对方还没说什么。）' },
+  SPAM_SUBSCRIBED:    { label:'骚扰订阅', unit:'', init:0,   thresh:5,   dir:'max', story:'骚扰接线员一分钟', sentence:'你订阅了{n}条来自陌生人的关心。' },
+  UNEXPECTED_CHARGE:  { label:'意外扣费', unit:'¥',init:0,   thresh:200, dir:'max', story:'客服投诉一分钟',   sentence:'意外支出{n}元。（大部分你不知道买了什么。）' },
 };
 
 /* ===== INTRUSION: 异世界乱入配置 ===== */
@@ -1061,6 +1069,11 @@ const STORYLINES = {
       {id:'MAIN_E48',title:'沉默回复者',icon:'📝',text:'回复了三十条消息。\n话不多但都在点。\n（言简意赅本人。）',priority:80,condition:(s,h,r)=>r>=20&&r<50},
       {id:'MAIN_E49',title:'话痨预警',icon:'🗨️',text:'回复比高达八成以上。\n话匣子完全打开。\n（打字速度跟不上思路。）',priority:80,condition:(s,h,r)=>h>=10&&r>=h*0.8},
       {id:'MAIN_E50',title:'冷场王',icon:'🥶',text:'回复比不足三成。\n全程高冷在线。\n（已读已是最大尊重。）',priority:80,condition:(s,h,r)=>h>=10&&r<h*0.3},
+    ],
+    guidance: [
+      { t:'DELIVERY', n:'饿了么', b:'您的外卖快到了，麻烦帮忙开一下门禁', correct:'WAIT', e:{}, d:1 },
+      { t:'BOSS',     n:'老板',  b:'明天早会9点，准时',                  correct:'RECEIVED', e:{}, d:1 },
+      { t:'SPAM_AD',  n:'18888888888', b:'【贷款】您的信用额度已提升至20万，点击领取', correct:'UNSUBSCRIBE', e:{}, d:1 },
     ],
   },
   SCAM_TARGET: {
@@ -1346,6 +1359,7 @@ function saveUnlocked(){ localStorage.setItem('1min_unlocked',JSON.stringify(unl
 /* ===== STATE: 游戏状态变量 ===== */
 let stats, timeLeft, tik, cur, canClick, replied, revealedStats, handled;
 let pool1, pool2, pool3;
+let guidanceQueue = [];
 let currentStoryline = null;
 let escapeType = null;
 let intrusionActive = false;
@@ -1420,6 +1434,15 @@ function stopBgm() {
     const el = document.getElementById(bid);
     if (el) { el.pause(); el.currentTime = 0; }
   });
+}
+
+const SFX_VOL = 0.6;
+function playSfx(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.volume = SFX_VOL;
+  el.currentTime = 0;
+  el.play().catch(() => {});
 }
 
 function startGameCore() {
@@ -1497,6 +1520,7 @@ function buildPools() {
   pool1 = shuffle(all.filter(m=>m.d===1));
   pool2 = shuffle(all.filter(m=>m.d===2));
   pool3 = shuffle(all.filter(m=>m.d===3));
+  guidanceQueue = (sl.guidance || []).map(g => ({...g}));
 }
 
 function generateCardsForStoryline(sl, count) {
@@ -1547,7 +1571,7 @@ function startIntrusion() {
   gameEl.classList.add('intrusion-active');
   const isAndroid = intrusionConfig.id === 'ANDROID_INTRUSION';
   gameEl.classList.add(isAndroid ? 'intrusion-android' : 'intrusion-radio');
-  // 切换乱入专属 BGM（android 暂无文件，静默失败）
+  playSfx(isAndroid ? 'sfx-intrusion-android' : 'sfx-intrusion-radio');
   playBgm(isAndroid ? 'bgm-android' : 'bgm-soviet', BGM_INTRUSION_VOL);
   showIntrusionCard(0);
 }
@@ -1584,6 +1608,17 @@ function updateTimer() {
 
 function nextMsg() {
   if (timeLeft <= 0) return;
+  if (guidanceQueue.length > 0) {
+    cur = guidanceQueue.shift();
+    canClick = true;
+    document.getElementById('msg-area').innerHTML =
+      `<div class="msg-card in">
+         <div class="msg-sender">${cur.n}</div>
+         <div class="msg-body">${cur.b}</div>
+       </div>`;
+    playSfx('sfx-msg');
+    return;
+  }
   let card = null;
   if (timeLeft > 45) {
     card = pickFromPool(pool1) || pickFromPool(pool2);
@@ -1605,6 +1640,7 @@ function nextMsg() {
        <div class="msg-sender">${cur.n}</div>
        <div class="msg-body">${cur.b}</div>
      </div>`;
+  playSfx('sfx-msg');
 }
 
 function reply(r) {
@@ -1640,9 +1676,11 @@ function reply(r) {
   replyLog.push({ senderType:cur.t, reply:r, correct });
 
   if (cur.easter) {
+    playSfx('sfx-correct');
     floatText('😄 对象会心一笑', true);
     if (card) { card.classList.remove('out'); card.classList.add('correct'); }
   } else if (!correct) {
+    playSfx('sfx-wrong');
     Object.entries(cur.e).forEach(([k, d]) => {
       if (!(k in stats)) return;
       stats[k] = Math.max(0, stats[k] + d);
@@ -1655,6 +1693,7 @@ function reply(r) {
     });
     renderStats();
   } else {
+    playSfx('sfx-correct');
     if (card) { card.classList.remove('out'); card.classList.add('correct'); }
     handled++;
     const hEl = document.getElementById('sc-HANDLED');
@@ -1794,25 +1833,38 @@ function endGame() {
     res.appendChild(eCard);
   }
 
+  const sentences = [];
   Object.entries(stats).forEach(([k, v]) => {
     const c = cfg[k];
     if (!c) return;
     const hit = c.dir === 'max' ? v >= c.thresh : v <= c.thresh;
-    const row = document.createElement('div');
-    row.className = 'result-row' + (hit ? ' unlocked' : '');
-    row.innerHTML = `
-      <div class="result-left">
-        <div class="result-name${hit ? ' red' : ''}">${c.label}</div>
-        ${hit && c.story ? `<div class="result-unlock">${c.story} 已解锁</div>` : ''}
-      </div>
-      <div class="result-val">${c.unit||''}${v}</div>`;
-    res.appendChild(row);
+    if (c.sentence) {
+      const delta = c.dir === 'max' ? v : (c.init - v);
+      if (delta > 0) {
+        sentences.push({ text: c.sentence.replace('{n}', delta), hit, story: c.story });
+      }
+    } else {
+      const row = document.createElement('div');
+      row.className = 'result-row' + (hit ? ' unlocked' : '');
+      row.innerHTML = `
+        <div class="result-left">
+          <div class="result-name${hit ? ' red' : ''}">${c.label}</div>
+          ${hit && c.story ? `<div class="result-unlock">${c.story} 已解锁</div>` : ''}
+        </div>
+        <div class="result-val">${c.unit||''}${v}</div>`;
+      res.appendChild(row);
+    }
   });
+  sentences.push({ text: '你回了' + handled + '条。', hit: false });
 
-  const handledRow = document.createElement('div');
-  handledRow.className = 'result-row';
-  handledRow.innerHTML = `<div class="result-left"><div class="result-name">今日效率</div></div><div class="result-val">${handled} 条</div>`;
-  res.appendChild(handledRow);
+  if (sentences.length > 0) {
+    const block = document.createElement('div');
+    block.className = 'result-row sentence-block';
+    block.innerHTML = sentences.map(s =>
+      `<div class="sentence-line${s.hit ? ' red' : ''}">${s.text}</div>`
+    ).join('');
+    res.appendChild(block);
+  }
 
   const newlyUnlocked = checkStorylineUnlocks();
   newlyUnlocked.forEach(sl => {
