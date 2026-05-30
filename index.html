@@ -1494,8 +1494,8 @@ function startGameCore() {
   buildPools();
   renderStats();
   updateTimer();
-  unreadCount = 0;
-  document.getElementById('msg-badge').textContent = '0';
+  unreadCount = 100;
+  document.getElementById('msg-badge').textContent = '99+';
   msgQueue = [];
 
   clearInterval(tik);
