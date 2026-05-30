@@ -398,14 +398,16 @@ body {
 /* ── MESSAGE CARD — WeChat received bubble ── */
 #msg-area {
   position: absolute;
-  top: 50%;
+  top: 178px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   width: 72%;
   z-index: 20;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: calc(100svh - 178px - 140px);
+  overflow: hidden;
 }
 
 .msg-card {
