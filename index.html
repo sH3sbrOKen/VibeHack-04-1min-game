@@ -1373,6 +1373,7 @@ let guidanceQueue = [];
 let msgQueue = [];
 let msgPushInterval = 3; // 每N秒自动推一条消息
 let unreadCount = 0;
+let intrusionQueue = [];
 let currentStoryline = null;
 let escapeType = null;
 let intrusionActive = false;
@@ -1598,6 +1599,7 @@ function tick() {
 function startIntrusion() {
   intrusionActive = true;
   intrusionCardIndex = 0;
+  intrusionQueue = [];
   msgQueue = []; // 乱入期间清空普通消息队列
   const gameEl = document.getElementById('game');
   gameEl.classList.add('intrusion-active');
@@ -1612,11 +1614,15 @@ function showIntrusionCard(index) {
   const card = intrusionConfig.cards[index];
   cur = { t: '__INTRUSION__', n: card.senderName, b: card.body, correct: intrusionConfig.activateReply, e: {} };
   canClick = true;
-  document.getElementById('msg-area').innerHTML =
-    `<div class="msg-card intrusion-card in">
-       <div class="msg-sender">${card.senderName}</div>
-       <div class="msg-body">${card.body.replace(/\n/g,'<br>')}</div>
-     </div>`;
+  intrusionQueue.push(card);
+  const area = document.getElementById('msg-area');
+  area.innerHTML = '';
+  intrusionQueue.slice(-4).reverse().forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'msg-card intrusion-card' + (i === 0 ? ' active-card in' : ' stacked-card');
+    el.innerHTML = `<div class="msg-sender">${c.senderName}</div><div class="msg-body">${c.body.replace(/\n/g,'<br>')}</div>`;
+    area.appendChild(el);
+  });
 }
 
 function endIntrusion() {
