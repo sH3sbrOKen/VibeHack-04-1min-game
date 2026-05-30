@@ -1090,11 +1090,6 @@ const STORYLINES = {
       {id:'MAIN_E49',title:'话痨预警',icon:'🗨️',text:'回复比高达八成以上。\n话匣子完全打开。\n（打字速度跟不上思路。）',priority:80,condition:(s,h,r)=>h>=10&&r>=h*0.8},
       {id:'MAIN_E50',title:'冷场王',icon:'🥶',text:'回复比不足三成。\n全程高冷在线。\n（已读已是最大尊重。）',priority:80,condition:(s,h,r)=>h>=10&&r<h*0.3},
     ],
-    guidance: [
-      { t:'DELIVERY', n:'饿了么', b:'您的外卖快到了，麻烦帮忙开一下门禁', correct:'WAIT', e:{}, d:1 },
-      { t:'BOSS',     n:'老板',  b:'明天早会9点，准时',                  correct:'RECEIVED', e:{}, d:1 },
-      { t:'SPAM_AD',  n:'18888888888', b:'【贷款】您的信用额度已提升至20万，点击领取', correct:'UNSUBSCRIBE', e:{}, d:1 },
-    ],
   },
   SCAM_TARGET: {
     id:'SCAM_TARGET', name:'被盯上一分钟',
