@@ -15,11 +15,16 @@
 | `docs/design/GDD.md` | 游戏设计：核心循环、数值系统、支线关卡 |
 | `docs/design/CONTENT.md` | 信息卡数据库：Schema、手写卡、规则引擎 |
 | `docs/design/COPY-STYLE.md` | 文案风格规范 |
+| `docs/design/META-LOOP.md` | 平行时间线系统设计 |
+| `docs/design/STORYLINE-PRODUCTION-GUIDE.md` | **故事线策划制作规范**（策划创作窗口入口） |
+| `docs/design/STORYLINE-MAIN.md` | 主线结局定义 |
+| `docs/design/STORYLINE-{ID}.md` | 各故事线内容定义（策划交付物） |
+| `docs/design/WORLDLINES.md` | 世界线跳转关系定义（策划交付物） |
 | `docs/dev/VERSIONS.md` | 版本历史 + 当前迭代计划（每次必读） |
 | `docs/dev/ACCIDENT-LOG.md` | 开发事故日志 + 提炼规律 |
 | `docs/dev/SELF-CHECK.md` | 功能自检清单（从事故日志提炼） |
 
-**数据以 `index.html` 的 RAW 数组为准**，CONTENT.md 是设计稿。
+**数据以 `index.html` 的 RAW 数组为准**，CONTENT.md 和 STORYLINE-*.md 是设计稿。
 
 ---
 
@@ -83,6 +88,14 @@ SC-001 因果自洽：✅/⚠️/❌ [说明]
 ---
 
 ## 核心概念速查
+
+### 故事线与世界线
+
+**故事线**：一个独立的一分钟世界，有专属消息卡/数值/结局。可以有独特的进入条件（数值阈值、行为模式等）和脱离条件（特殊通关方式）。策划交付 `STORYLINE-{ID}.md`，程序转成代码。
+
+**世界线**：多条故事线之间的隐藏跳转链路。玩家不可见，只感受到"故事自然延续"。未脱离故事线A → 跳转到B；脱离了A → 回主线或跳转到C。策划交付 `WORLDLINES.md`，程序转成代码。
+
+**结局**：每个故事线有多个结局（由数值组合判定）。100个结局 = 12条故事线 × 每线 ~8-10 个结局。
 
 ### 四个回复按钮
 
